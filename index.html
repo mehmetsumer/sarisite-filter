@@ -1,0 +1,72 @@
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <style>
+            body {
+                width: 300px;
+            }
+
+            #divBrands {
+                display:ruby;
+            }
+
+            .brandRow {
+                padding: 0.2em;
+            }
+
+            .prevent-select {
+                -webkit-user-select: none; /* Safari */
+                -ms-user-select: none; /* IE 10 and IE 11 */
+                user-select: none; /* Standard syntax */
+            }
+        </style>
+    </head>
+  <body>
+    <h3 class="prevent-select">Sahibinden Filtreleme Aracı</h3>
+    <div class="links">
+        <p>Filtreleme yapmak için herhangi bir kategori seçip tüm ilanları görüntülemeniz gerekmektedir.</p>
+        <h4 style="margin: 0 0 10px 0;">Örnek Sayfalar</h4>
+        <a style="padding: 0.2em;" target="_blank" href="https://www.sahibinden.com/otomobil">Otomobil</a>
+        <a style="padding: 0.2em;" target="_blank" href="https://www.sahibinden.com/arazi-suv-pickup">Arazi, SUV & Pickup</a>
+        <a style="padding: 0.2em;" target="_blank" href="https://www.sahibinden.com/minivan-panelvan">Minivan & Panelvan</a>
+        <a style="padding: 0.2em;" target="_blank" href="https://www.sahibinden.com/motosiklet">Motosiklet</a>
+    </div>   
+    <div style="display: ruby;">
+        <h4>Markalar</h4>
+        <input type="checkbox" id="cbSelectAllBrands" name="cbSelectAllBrands" value="true">
+        <label for="cbSelectAllBrands">Hepsini Seç</label>
+    </div>
+    <div id="divBrands">
+    </div>
+    <div style="width:100%;">
+        <h4>Modeller</h4>
+        <div style="width:100%;">
+            <input style="width:80%;" id="tbModel" type="text" placeholder="Model.." />
+            <span class="prevent-select" style="color:green;cursor:pointer;width:20%;margin-left:5px;" id="addModel">Ekle</span>
+        </div>
+        <div style="width:100%;margin-top:8px;">   
+            <label class="prevent-select" style="width:100%;" for="slModels">Modeller <span class="prevent-select" style="color:tomato;cursor:pointer;" id="removeModel">Sil</span></label>
+            <select id="slModels" style="width:100%;margin-top:5px;">
+                <option value="0">Seciniz..</option>
+            </select>
+        </div>      
+    </div>
+    <br>
+    <div>
+        <input class="prevent-select" type="radio" id="cbWhiteList" name="list_type" value="1">
+        <label class="prevent-select" for="cbWhiteList">Beyaz Liste</label>
+        <input class="prevent-select" type="radio" id="cbBlackList" name="list_type" value="2" checked>
+        <label class="prevent-select" for="cbBlackList">Kara Liste</label>
+    </div>
+    <br>
+    <span class="prevent-select" style="color:deepskyblue;cursor:pointer;display: block;" id="btFilter">Filtrele</span>
+    <span class="prevent-select" style="color:black;font-size: 13pt;margin-top:10px;display: block;" id="spAlert"></span>
+    <br>
+    <span class="prevent-select" style="color:rgb(87, 0, 250);cursor:pointer;" id="btBackup">Seçimleri Yedekle</span>
+    <span class="prevent-select" style="color:rgb(87, 0, 250);cursor:pointer;float:right;" id="btRestore">Yedekten Yükle</span>
+    <a id="downloadAnchorElem" style="display:none"></a>
+    <script src="jquery-3.7.1.min.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
