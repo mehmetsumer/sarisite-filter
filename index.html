@@ -1,72 +1,157 @@
-<html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bilgi — Sarı Site Filtre</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            min-width: 320px;
+            max-width: 360px;
+            font-family: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.45;
+            color: #1a1a1a;
+            background: linear-gradient(165deg, #fffbeb 0%, #fef3c7 35%, #fff 100%);
+        }
+        .wrap {
+            padding: 16px 18px 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(234, 179, 8, 0.35);
+        }
+        .badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #92400e;
+            background: rgba(251, 191, 36, 0.35);
+            padding: 4px 10px;
+            border-radius: 999px;
+            margin-bottom: 8px;
+        }
+        h1 {
+            margin: 0 0 6px;
+            font-size: 17px;
+            font-weight: 700;
+            color: #78350f;
+        }
+        .ver {
+            font-size: 11px;
+            color: #78716c;
+        }
+        section {
+            background: #fff;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(234, 179, 8, 0.2);
+        }
+        h2 {
+            margin: 0 0 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #b45309;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        p {
+            margin: 0 0 8px;
+        }
+        p:last-child {
+            margin-bottom: 0;
+        }
+        ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+        li {
+            margin-bottom: 4px;
+        }
+        li:last-child {
+            margin-bottom: 0;
+        }
+        .contact a {
+            color: #0d9488;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .contact a:hover {
+            text-decoration: underline;
+        }
+        .contact-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+        .contact-row:last-child {
+            margin-bottom: 0;
+        }
+        .label {
+            font-weight: 600;
+            color: #57534e;
+            min-width: 52px;
+        }
+        footer {
+            text-align: center;
+            font-size: 11px;
+            color: #a8a29e;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <div class="badge">Bilgi</div>
+            <h1>Sarı Site Çoklu Filtreleme</h1>
+            <div class="ver">Sürüm 1.4</div>
+        </header>
+        <section>
+            <h2>Hakkında</h2>
+            <p>
+                Bu eklenti, Sahibinden arama sayfalarında sol menüdeki marka / model satırlarına
+                hızlı dahil–hariç (✓ / ✕) seçenekleri ekler; kara liste tercihlerinizi tarayıcıda saklar.
+            </p>
+        </section>
+        <section>
+            <h2>Nasıl kullanılır?</h2>
+            <ul>
+                <li>İlgili kategoride arama / liste sayfasına gidin.</li>
+                <li>Sol taraftaki model listesinde satır başındaki simgelere tıklayın.</li>
+                <li><strong>Gizli modelleri göster</strong> ve <strong>Hepsini aç / kapat</strong> kutuları listeyi yönetir.</li>
+            </ul>
+        </section>
+        <section class="contact">
+            <h2>İletişim</h2>
+            <p style="margin-bottom: 10px; color: #57534e;">
+                Geri bildirim, öneri veya katkı için:
+            </p>
+            <div class="contact-row">
+                <span class="label">E-posta</span>
+                <a href="mailto:06scape@gmail.com">06scape@gmail.com</a>
+            </div>
+            <div class="contact-row">
+                <span class="label">GitHub</span>
+                <a href="https://github.com/mehmetsumer/sarisite-filter" target="_blank" rel="noopener noreferrer">Github</a>
+            </div>
+        </section>
 
-        <style>
-            body {
-                width: 300px;
-            }
-
-            #divBrands {
-                display:ruby;
-            }
-
-            .brandRow {
-                padding: 0.2em;
-            }
-
-            .prevent-select {
-                -webkit-user-select: none; /* Safari */
-                -ms-user-select: none; /* IE 10 and IE 11 */
-                user-select: none; /* Standard syntax */
-            }
-        </style>
-    </head>
-  <body>
-    <h3 class="prevent-select">Sahibinden Filtreleme Aracı</h3>
-    <div class="links">
-        <p>Filtreleme yapmak için herhangi bir kategori seçip tüm ilanları görüntülemeniz gerekmektedir.</p>
-        <h4 style="margin: 0 0 10px 0;">Örnek Sayfalar</h4>
-        <a style="padding: 0.2em;" target="_blank" href="https://www.sahibinden.com/otomobil">Otomobil</a>
-        <a style="padding: 0.2em;" target="_blank" href="https://www.sahibinden.com/arazi-suv-pickup">Arazi, SUV & Pickup</a>
-        <a style="padding: 0.2em;" target="_blank" href="https://www.sahibinden.com/minivan-panelvan">Minivan & Panelvan</a>
-        <a style="padding: 0.2em;" target="_blank" href="https://www.sahibinden.com/motosiklet">Motosiklet</a>
-    </div>   
-    <div style="display: ruby;">
-        <h4>Markalar</h4>
-        <input type="checkbox" id="cbSelectAllBrands" name="cbSelectAllBrands" value="true">
-        <label for="cbSelectAllBrands">Hepsini Seç</label>
+        <footer>
+            Sahibinden ile resmi bağlantısı yoktur; üçüncü taraf bir yardımcı araçtır.
+        </footer>
     </div>
-    <div id="divBrands">
-    </div>
-    <div style="width:100%;">
-        <h4>Modeller</h4>
-        <div style="width:100%;">
-            <input style="width:80%;" id="tbModel" type="text" placeholder="Model.." />
-            <span class="prevent-select" style="color:green;cursor:pointer;width:20%;margin-left:5px;" id="addModel">Ekle</span>
-        </div>
-        <div style="width:100%;margin-top:8px;">   
-            <label class="prevent-select" style="width:100%;" for="slModels">Modeller <span class="prevent-select" style="color:tomato;cursor:pointer;" id="removeModel">Sil</span></label>
-            <select id="slModels" style="width:100%;margin-top:5px;">
-                <option value="0">Seciniz..</option>
-            </select>
-        </div>      
-    </div>
-    <br>
-    <div>
-        <input class="prevent-select" type="radio" id="cbWhiteList" name="list_type" value="1">
-        <label class="prevent-select" for="cbWhiteList">Beyaz Liste</label>
-        <input class="prevent-select" type="radio" id="cbBlackList" name="list_type" value="2" checked>
-        <label class="prevent-select" for="cbBlackList">Kara Liste</label>
-    </div>
-    <br>
-    <span class="prevent-select" style="color:deepskyblue;cursor:pointer;display: block;" id="btFilter">Filtrele</span>
-    <span class="prevent-select" style="color:black;font-size: 13pt;margin-top:10px;display: block;" id="spAlert"></span>
-    <br>
-    <span class="prevent-select" style="color:rgb(87, 0, 250);cursor:pointer;" id="btBackup">Seçimleri Yedekle</span>
-    <span class="prevent-select" style="color:rgb(87, 0, 250);cursor:pointer;float:right;" id="btRestore">Yedekten Yükle</span>
-    <a id="downloadAnchorElem" style="display:none"></a>
-    <script src="jquery-3.7.1.min.js"></script>
-    <script src="popup.js"></script>
-  </body>
+</body>
 </html>
