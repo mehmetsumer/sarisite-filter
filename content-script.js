@@ -99,7 +99,7 @@ function getDisabledModels() {
     return profile?.disabledModels ?? [];   
 }
 
-function setDisabledModels(list, callback) {
+function setDisabledModels(list, callback, saveToStorage = true) {
     var ctx = getPageCategoryContext();
     if (!ctx.categoryId) {
         window.alert('Kategori bilgisi bulunamadı. Önce marka/model sayfasında olun.');
@@ -122,8 +122,10 @@ function setDisabledModels(list, callback) {
     else {
         profile.disabledModels = list;
     }
-    // console.log(profile);
-    saveStorage(callback);  
+    
+    if(saveToStorage) {
+        saveStorage(callback); 
+    } 
 }
 
 function setFilterStateAndRefresh(disabledModels, showHidden, callback) {
@@ -325,11 +327,8 @@ function wireProfilesBar(wrap) {
             if (editingProfileId === id) {
                 editingProfileId = DEFAULT_PROFILE_ID;
             }
+            storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = editingProfileId;
             viewing = false;
-
-            var payload = {};
-            payload[STORAGE_LAST_SELECTED_PROFILE_ID] = editingProfileId;
-            chrome.storage.local.set(payload);
 
             saveStorage(function () {
                 ensureProfilesBar();
@@ -430,12 +429,11 @@ function wireProfilesBar(wrap) {
         if(newButton) {
             newButton.style.display = 'block';
         }
+        storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = editingProfileId;
 
-        var payload = {};
-        payload[STORAGE_LAST_SELECTED_PROFILE_ID] = editingProfileId;
-        chrome.storage.local.set(payload);
-
-        ensureProfilesBar();
+        saveStorage(function () {
+            ensureProfilesBar();
+        });
     });
 
     wrap.querySelector('.sarisite-profile-export').addEventListener('click', function () {
@@ -774,6 +772,7 @@ function bindToggleClick(toggle, li, categoryId, title) {
                 next.push({ id: idStr, title: (title || '').trim() });
             }
         }
+
         setDisabledModels(next, function () {
             updateToggleVisual(toggle, nextEnabled);
             var container = document.getElementById('searchCategoryContainer');
@@ -785,7 +784,7 @@ function bindToggleClick(toggle, li, categoryId, title) {
                 syncMasterCheckbox(container);
             }
             mergeParamsAndFilter();
-        });
+        }, editingProfileId == DEFAULT_PROFILE_ID);
     });
 }
 
