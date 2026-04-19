@@ -99,7 +99,7 @@ function getDisabledModels() {
     return profile?.disabledModels ?? [];   
 }
 
-function setDisabledModels(list, callback, saveToStorage = true) {
+function setDisabledModels(list) {
     var ctx = getPageCategoryContext();
     if (!ctx.categoryId) {
         window.alert('Kategori bilgisi bulunamadı. Önce marka/model sayfasında olun.');
@@ -122,17 +122,18 @@ function setDisabledModels(list, callback, saveToStorage = true) {
     else {
         profile.disabledModels = list;
     }
-    
-    if(saveToStorage) {
-        saveStorage(callback); 
-    } 
 }
 
 function setFilterStateAndRefresh(disabledModels, showHidden, callback) {
     storageObj[STORAGE_SHOW_HIDDEN_MODELS] = showHidden;
-    storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = viewing && editingProfileId ? editingProfileId : DEFAULT_PROFILE_ID;
-    
-    setDisabledModels(disabledModels, function () {
+    storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = editingProfileId ? editingProfileId : DEFAULT_PROFILE_ID; 
+    setDisabledModels(disabledModels);
+
+    var request = {};
+    //request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+    //request[STORAGE_SHOW_HIDDEN_MODELS] = storageObj[STORAGE_SHOW_HIDDEN_MODELS];
+    request[STORAGE_LAST_SELECTED_PROFILE_ID] = storageObj[STORAGE_LAST_SELECTED_PROFILE_ID];
+    saveStorage(request, function () {
         scheduleCategorySidebarRefresh();
         if (typeof callback === 'function') {
             callback();
@@ -185,9 +186,13 @@ function getStorage(callback) {
     });
 }
 
-function saveStorage(callback) {
-    // console.log('saveStorage: ', storageObj);
-    chrome.storage.local.set(storageObj, callback);
+function saveStorage(obj, callback) {
+    console.log('saveStorage: ', obj);
+    //storageObj[STORAGE_FILTER_PROFILES] = [];
+    //storageObj[STORAGE_SHOW_HIDDEN_MODELS] = true;
+    //storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = DEFAULT_PROFILE_ID;
+
+    chrome.storage.local.set(obj, callback);
 }
 
 function escapeHtml(s) {
@@ -330,7 +335,10 @@ function wireProfilesBar(wrap) {
             storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = editingProfileId;
             viewing = false;
 
-            saveStorage(function () {
+            var request = {};
+            request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+            request[STORAGE_LAST_SELECTED_PROFILE_ID] = storageObj[STORAGE_LAST_SELECTED_PROFILE_ID];
+            saveStorage(request, function () {
                 ensureProfilesBar();
             });
         }
@@ -365,7 +373,9 @@ function wireProfilesBar(wrap) {
             disabledModels: state.disabledModels,
             showHiddenModels: state.showHidden,
         });
-        saveStorage(function () {
+        var request = {};
+        request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+        saveStorage(request, function () {
             if (input) {
                 input.value = '';
             }
@@ -403,7 +413,10 @@ function wireProfilesBar(wrap) {
         p.showHiddenModels = state.showHidden;
         p.categoryId = state.categoryId;
         p.categoryName = state.categoryName;
-        saveStorage(function () {
+
+        var request = {};
+        request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+        saveStorage(request, function () {
             if(!viewing) {
                 editingProfileId = DEFAULT_PROFILE_ID;
                 if (nameInput) {
@@ -425,13 +438,16 @@ function wireProfilesBar(wrap) {
             nameInput.value = '';
             nameInput.focus();
         }
+
         var newButton = wrap.querySelector('.sarisite-profile-btn-new');
         if(newButton) {
             newButton.style.display = 'block';
         }
         storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = editingProfileId;
-
-        saveStorage(function () {
+        
+        var request = {};
+        request[STORAGE_LAST_SELECTED_PROFILE_ID] = storageObj[STORAGE_LAST_SELECTED_PROFILE_ID];
+        saveStorage(request, function () {
             ensureProfilesBar();
         });
     });
@@ -475,7 +491,7 @@ function wireProfilesBar(wrap) {
                         return;
                     }
 
-                    saveStorage(function () {
+                    saveStorage(storageObj, function () {
                         window.alert('İçe aktarıldı.');
                         ensureProfilesBar();
                     });
@@ -692,17 +708,12 @@ function wireMasterToggle(container) {
     cb.addEventListener('change', function () {
         var wantAllEnabled = cb.checked;
         var items = container.querySelectorAll('li[data-categorybreadcrumbid]');
-        if (!items.length) {
+        if (!(items.length > 0)) {
             return;
         }
+
         if (wantAllEnabled) {
-            setDisabledModels([], function () {
-                var cat = document.getElementById('searchCategoryContainer');
-                if (cat) {
-                    decorateCategoryList(cat);
-                }
-                mergeParamsAndFilter();
-            });
+            setDisabledModels([]);
         } else {
             var next = [];
             items.forEach(function (li) {
@@ -711,22 +722,27 @@ function wireMasterToggle(container) {
                     next.push(entry);
                 }
             });
-            setDisabledModels(next, function () {
-                var cat = document.getElementById('searchCategoryContainer');
-                if (cat) {
-                    decorateCategoryList(cat);
-                }
-                mergeParamsAndFilter();
-            });
+            setDisabledModels(next);
         }
+
+        var request = {};
+        request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+        saveStorage(request, function () {
+            var cat = document.getElementById('searchCategoryContainer');
+            if (cat) {
+                decorateCategoryList(cat);
+            }
+            mergeParamsAndFilter();
+        });
     });
 }
 
-function wireHiddenBarCheckbox(container, disabledList) {
+function wireHiddenBarCheckbox(container) {
     var bar = ensureHiddenModelsBar(container);
     if (!bar) {
         return;
     }
+
     var cb = bar.querySelector('.sarisite-show-hidden-cb');
     if (!cb || cb.dataset.sarisiteBound) {
         return;
@@ -735,7 +751,10 @@ function wireHiddenBarCheckbox(container, disabledList) {
     cb.addEventListener('change', function () {
         var show = cb.checked;
         storageObj[STORAGE_SHOW_HIDDEN_MODELS] = show;     
-        saveStorage(function () {  
+
+        var request = {};
+        request[STORAGE_SHOW_HIDDEN_MODELS] = storageObj[STORAGE_SHOW_HIDDEN_MODELS];
+        saveStorage(request, function () {  
             var list = getDisabledModels();
             var set = disabledIdSet(list);
             var lis = container.querySelectorAll('ul li[data-categorybreadcrumbid]');
@@ -773,18 +792,23 @@ function bindToggleClick(toggle, li, categoryId, title) {
             }
         }
 
-        setDisabledModels(next, function () {
-            updateToggleVisual(toggle, nextEnabled);
-            var container = document.getElementById('searchCategoryContainer');
-            var set = disabledIdSet(next);
-            var showHidden = isShowHiddenModelsEnabled(container);
-            applyRowHiddenState(li, idStr, set, showHidden);
-            syncHiddenBarVisibility(container);
-            if (container) {
-                syncMasterCheckbox(container);
-            }
-            mergeParamsAndFilter();
-        }, editingProfileId == DEFAULT_PROFILE_ID);
+        setDisabledModels(next);
+        updateToggleVisual(toggle, nextEnabled);
+        var container = document.getElementById('searchCategoryContainer');
+        var set = disabledIdSet(next);
+        var showHidden = isShowHiddenModelsEnabled(container);
+        applyRowHiddenState(li, idStr, set, showHidden);
+        syncHiddenBarVisibility(container);
+        if (container) {
+            syncMasterCheckbox(container);
+        }
+        mergeParamsAndFilter();
+
+        if(editingProfileId == DEFAULT_PROFILE_ID) {
+            var request = {};
+            request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+            saveStorage(request);
+        }
     });
 }
 
@@ -857,7 +881,7 @@ function decorateCategoryList(container) {
     });
 
     syncHiddenBarVisibility(container);
-    wireHiddenBarCheckbox(container, disabledList);
+    wireHiddenBarCheckbox(container);
     wireMasterToggle(container);
     syncMasterCheckbox(container);
     neutralizeJScrollPaneInner(container);
@@ -898,6 +922,7 @@ function observeCategoryContainer(container) {
     } else {
         container.dataset.sarisiteObserved = '1';
     }
+
     var t = null;
     var obs = new MutationObserver(function () {
         if (t) {
