@@ -180,13 +180,13 @@ function getStorage(callback) {
         storageObj[STORAGE_SHOW_HIDDEN_MODELS] = showHidden;
         storageObj[STORAGE_FILTER_PROFILES] = list;
 
-        console.log('getStorage:', storageObj);
+        // console.log('getStorage:', storageObj);
         callback();
     });
 }
 
 function saveStorage(callback) {
-    console.log('saveStorage: ', storageObj);
+    // console.log('saveStorage: ', storageObj);
     chrome.storage.local.set(storageObj, callback);
 }
 
