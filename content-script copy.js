@@ -13,14 +13,12 @@ var params = {
     type: 2,
 };
 
-const STORAGE_EXTENSION_ENABLED = 'sarisiteExtensionEnabled';
 const STORAGE_FILTER_PROFILES = 'sarisiteFilterProfiles';
 const STORAGE_SHOW_HIDDEN_MODELS = 'sarisiteShowHiddenModels';
 const STORAGE_LAST_SELECTED_PROFILE_ID = 'sarisiteLastSelectedProfileId';
 const DEFAULT_PROFILE_ID = 'default-profile';
 
 var storageObj = {};
-storageObj[STORAGE_EXTENSION_ENABLED] = true;
 storageObj[STORAGE_FILTER_PROFILES] = [];
 storageObj[STORAGE_SHOW_HIDDEN_MODELS] = true;
 storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = DEFAULT_PROFILE_ID;
@@ -86,15 +84,6 @@ function injectBaseStyles() {
         '.sarisite-profile-btn-new, .sarisite-profile-btn-commit { background: #0d9488; color: #fff; border-color: #0d9488; }',
         '.sarisite-profile-edit-banner { margin-top: 6px; padding: 6px 8px; background: #ecfdf5; border: 1px solid #99f6e4; border-radius: 6px; font-size: 11px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }',
         '.sarisite-profile-import, .sarisite-profile-export { margin-left: 6px; cursor: pointer; border: none; background: transparent; font-size: 14px; }',
-        '.sarisite-row-blurred { opacity: 0.3 !important; filter: blur(2px) !important; transition: all 0.2s; }',
-        '.sarisite-row-blurred:hover { opacity: 0.5 !important; filter: blur(0px) !important; }',
-        '.sarisite-inline-toggle {',
-        '  display: inline-block; width: 14px; height: 14px; line-height: 14px; text-align: center;',
-        '  font-size: 10px; font-weight: bold; cursor: pointer; user-select: none;',
-        '  border-radius: 2px; margin-left: 5px; vertical-align: middle;',
-        '}',
-        '.sarisite-inline-toggle[data-enabled="true"] { color: #1b5e20; background: #e8f5e9; }',
-        '.sarisite-inline-toggle[data-enabled="false"] { color: #b71c1c; background: #ffebee; }',
     ].join('\n');
     document.documentElement.appendChild(style);
 }
@@ -119,6 +108,7 @@ function setDisabledModels(list) {
 
     var categoryProfiles = profilesForCurrentCategory(ctx.categoryId);
     var profile = categoryProfiles.find(function (x) { return x.id === editingProfileId; });     
+    console.log(profile, editingProfileId, DEFAULT_PROFILE_ID);
     if(!profile && editingProfileId == DEFAULT_PROFILE_ID) {
         profile = {
             id: DEFAULT_PROFILE_ID,
@@ -141,6 +131,8 @@ function setFilterStateAndRefresh(disabledModels, showHidden, callback) {
     setDisabledModels(disabledModels);
 
     var request = {};
+    //request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+    //request[STORAGE_SHOW_HIDDEN_MODELS] = storageObj[STORAGE_SHOW_HIDDEN_MODELS];
     request[STORAGE_LAST_SELECTED_PROFILE_ID] = storageObj[STORAGE_LAST_SELECTED_PROFILE_ID];
     saveStorage(request, function () {
         scheduleCategorySidebarRefresh();
@@ -171,17 +163,7 @@ function captureCurrentFilterState() {
 }
 
 function getStorage(callback) {
-    chrome.storage.local.get([STORAGE_EXTENSION_ENABLED, STORAGE_FILTER_PROFILES, STORAGE_SHOW_HIDDEN_MODELS, STORAGE_LAST_SELECTED_PROFILE_ID], function (data) {
-        var isExtensionEnabled = data[STORAGE_EXTENSION_ENABLED];
-        if (isExtensionEnabled === undefined) {
-            isExtensionEnabled = false;
-        }
-        storageObj[STORAGE_EXTENSION_ENABLED] = isExtensionEnabled;
-        if(!isExtensionEnabled) {
-            console.error('UZANTI AKTİF DEĞİL');
-            return;
-        }
-
+    chrome.storage.local.get([STORAGE_FILTER_PROFILES, STORAGE_SHOW_HIDDEN_MODELS, STORAGE_LAST_SELECTED_PROFILE_ID], function (data) {
         var list = data[STORAGE_FILTER_PROFILES];
         if (!Array.isArray(list)) {
             list = [];
@@ -206,13 +188,17 @@ function getStorage(callback) {
         }
         storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = editingProfileId;
 
+        // console.log('getStorage:', storageObj);
         callback();
     });
 }
 
 function saveStorage(obj, callback) {
     console.log('saveStorage: ', obj);
-    console.log('disabledModels: ', obj[STORAGE_FILTER_PROFILES]?.find(x=> x.id == editingProfileId)?.disabledModels);
+    //storageObj[STORAGE_FILTER_PROFILES] = [];
+    //storageObj[STORAGE_SHOW_HIDDEN_MODELS] = true;
+    //storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = DEFAULT_PROFILE_ID;
+
     chrome.storage.local.set(obj, callback);
 }
 
@@ -237,8 +223,295 @@ function renderProfilesBarChips(wrap) {
     if (!chipsEl) {
         return;
     }
-
     chipsEl.innerHTML = '';
+    var banner = wrap.querySelector('.sarisite-profile-edit-banner');
+    var editLabel = wrap.querySelector('.sarisite-edit-label');
+    var ctx = getPageCategoryContext();
+    var categoryProfiles = profilesForCurrentCategory(ctx.categoryId);
+    categoryProfiles.forEach(function (p) {
+        if(p.id == DEFAULT_PROFILE_ID) {
+            return;
+        }
+
+        var chip = document.createElement('div');
+        chip.className = 'sarisite-profile-chip' + (p.id == editingProfileId ? ' active' : '');
+        // active varsa active yap.
+        chip.setAttribute('data-profile-id', p.id);
+        
+        var loadBtn = document.createElement('button');
+        loadBtn.type = 'button';
+        loadBtn.className = 'sarisite-profile-load';
+        loadBtn.textContent = p.name || 'Adsız';
+        loadBtn.title = 'Yükle: ' + (p.name || '');
+        loadBtn.setAttribute('data-profile-id', p.id);
+
+        var editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'sarisite-profile-edit';
+        editBtn.innerHTML = '&#9998;';
+        editBtn.title = 'Düzenle';
+        editBtn.setAttribute('data-profile-id', p.id);
+
+        var delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'sarisite-profile-delete';
+        delBtn.textContent = '\u00D7';
+        delBtn.title = 'Sil';
+        delBtn.setAttribute('data-profile-id', p.id);
+        chip.appendChild(loadBtn);
+        chip.appendChild(editBtn);
+        chip.appendChild(delBtn);
+        chipsEl.appendChild(chip);
+    });
+    if (categoryProfiles?.length > 0 && banner && editLabel && editingProfileId && editingProfileId != DEFAULT_PROFILE_ID) {
+        var ep = categoryProfiles.find(function (x) { return x.id === editingProfileId; });
+        banner.style.display = 'flex';
+        editLabel.innerHTML = (!viewing ? 'Düzenleniyor' : 'Görüntüleniyor' )
+                                + ': <strong class="sarisite-edit-name">' + (ep ? ep.name || '' : '') + '</strong>';
+    }
+    else {
+        banner.style.display = 'none';
+    }
+}
+
+function wireProfilesBar(wrap) {
+    wrap.addEventListener('click', function (e) {
+        var t = e.target;
+        if (!t || !t.closest) {
+            return;
+        }
+        // var chip = t.closest('.sarisite-profile-chip');
+        var loadBtn = t.closest('.sarisite-profile-load');
+        var editBtn = t.closest('.sarisite-profile-edit');
+        var delBtn = t.closest('.sarisite-profile-delete');
+        var nameInput = wrap.querySelector('.sarisite-profile-name-input');
+        var id = (loadBtn || editBtn || delBtn) && (loadBtn || editBtn || delBtn).getAttribute('data-profile-id');
+        if (loadBtn && id) {
+            e.preventDefault();
+            editingProfileId = id;
+            viewing = true;
+
+            var p = storageObj[STORAGE_FILTER_PROFILES].find(function (x) { return x.id === id; });
+            if (!p) {
+                return;
+            }
+
+            var dm = p.disabledModels || [];
+            var sh = p.showHiddenModels !== false;
+            setFilterStateAndRefresh(dm, sh, function () {
+                if (nameInput) {
+                    nameInput.value = '';
+                }
+                ensureProfilesBar();
+            });
+            return;
+        }
+        if (editBtn && id) {
+            e.preventDefault();
+            var p = storageObj[STORAGE_FILTER_PROFILES].find(function (x) { return x.id === id; });
+            if (!p) {
+                return;
+            }
+
+            editingProfileId = id;
+            viewing = false;
+            var newButton = wrap.querySelector('.sarisite-profile-btn-new');
+            if(newButton) {
+                newButton.style.display = 'none';
+            } 
+            if (nameInput) {
+                nameInput.value = p.name || '';
+                nameInput.focus();
+            }
+            var dm = p.disabledModels || [];
+            var sh = p.showHiddenModels !== false;
+            setFilterStateAndRefresh(dm, sh, function () {
+                ensureProfilesBar();
+            });
+            return;
+        }
+        if (delBtn && id) {
+            e.preventDefault();
+            if (!window.confirm('Bu profili silmek istiyor musunuz?')) {
+                return;
+            }
+            storageObj[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES].filter(function (x) { return x.id !== id; });
+            if (editingProfileId === id) {
+                editingProfileId = DEFAULT_PROFILE_ID;
+            }
+            storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = editingProfileId;
+            viewing = false;
+
+            var request = {};
+            request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+            request[STORAGE_LAST_SELECTED_PROFILE_ID] = storageObj[STORAGE_LAST_SELECTED_PROFILE_ID];
+            saveStorage(request, function () {
+                ensureProfilesBar();
+            });
+        }
+    });
+    wrap.querySelector('.sarisite-profile-btn-new').addEventListener('click', function () {
+        var input = wrap.querySelector('.sarisite-profile-name-input');
+        if (input) {
+            input.focus();
+        }
+        var name = (input && input.value.trim()) || '';
+        if (!name) {
+            window.alert('Profil adı girin.');
+            return;
+        }
+
+        var state = captureCurrentFilterState();
+        if (!state.categoryId) {
+            window.alert('Kategori bilgisi bulunamadı. Önce marka/model sayfasında olun.');
+            return;
+        }
+
+        const check = storageObj[STORAGE_FILTER_PROFILES].find(x => x.name == name);
+        if(check != null) {
+            window.alert('Profil ismi zaten mevcut.');
+            return;
+        }
+        storageObj[STORAGE_FILTER_PROFILES].push({
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 9),
+            name: name,
+            categoryId: state.categoryId,
+            categoryName: state.categoryName,
+            disabledModels: state.disabledModels,
+            showHiddenModels: state.showHidden,
+        });
+        var request = {};
+        request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+        saveStorage(request, function () {
+            if (input) {
+                input.value = '';
+            }
+            ensureProfilesBar();
+        });
+    });
+    wrap.querySelector('.sarisite-profile-btn-commit').addEventListener('click', function () {
+        if (!editingProfileId) {
+            return;
+        }
+        var nameInput = wrap.querySelector('.sarisite-profile-name-input');        
+        if (nameInput) {
+            nameInput.focus();
+        }
+        var newName = (nameInput && nameInput.value.trim()) || '';
+        
+        var p = storageObj[STORAGE_FILTER_PROFILES].find(function (x) { return x.id === editingProfileId; });
+        if (!p) {
+            editingProfileId = DEFAULT_PROFILE_ID;
+            ensureProfilesBar();
+            return;
+        }
+
+        if(newName) {
+            const check = storageObj[STORAGE_FILTER_PROFILES].find(x => x.id != p.id && x.name == newName);
+            if(check != null) {
+                window.alert('Profil ismi zaten mevcut.');
+                return;
+            }
+            p.name = newName;
+        }
+
+        var state = captureCurrentFilterState();
+        p.disabledModels = state.disabledModels;
+        p.showHiddenModels = state.showHidden;
+        p.categoryId = state.categoryId;
+        p.categoryName = state.categoryName;
+
+        var request = {};
+        request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+        saveStorage(request, function () {
+            if(!viewing) {
+                editingProfileId = DEFAULT_PROFILE_ID;
+                if (nameInput) {
+                    nameInput.value = '';
+                }
+                var newButton = wrap.querySelector('.sarisite-profile-btn-new');
+                if(newButton) {
+                    newButton.style.display = 'block';
+                }
+            }
+
+            ensureProfilesBar();
+        });
+    });
+    wrap.querySelector('.sarisite-profile-btn-cancel').addEventListener('click', function () {
+        editingProfileId = DEFAULT_PROFILE_ID;
+        var nameInput = wrap.querySelector('.sarisite-profile-name-input');
+        if (nameInput) {
+            nameInput.value = '';
+            nameInput.focus();
+        }
+
+        var newButton = wrap.querySelector('.sarisite-profile-btn-new');
+        if(newButton) {
+            newButton.style.display = 'block';
+        }
+        storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = editingProfileId;
+        
+        var request = {};
+        request[STORAGE_LAST_SELECTED_PROFILE_ID] = storageObj[STORAGE_LAST_SELECTED_PROFILE_ID];
+        saveStorage(request, function () {
+            ensureProfilesBar();
+        });
+    });
+
+    wrap.querySelector('.sarisite-profile-export').addEventListener('click', function () {
+        if (!(storageObj[STORAGE_FILTER_PROFILES]?.length > 0)) {
+            window.alert('Export edilecek profil yok.');
+            return;
+        }
+
+        const dataStr = JSON.stringify(storageObj, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const now = new Date();
+        const fileName = `sarisite_${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${
+            now.getFullYear()}_${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}.json`;
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+
+        URL.revokeObjectURL(url);
+    });
+    wrap.querySelector('.sarisite-profile-import').addEventListener('click', function () {
+        const inputFile = document.createElement('input');
+        inputFile.type = 'file';
+        inputFile.accept = 'application/json';
+    
+        inputFile.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+    
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                try {
+                    storageObj = JSON.parse(evt.target.result);
+                    if (!Array.isArray(storageObj[STORAGE_FILTER_PROFILES])) {
+                        window.alert('Geçersiz dosya formatı.');
+                        return;
+                    }
+
+                    saveStorage(storageObj, function () {
+                        window.alert('İçe aktarıldı.');
+                        ensureProfilesBar();
+                    });
+                } catch (err) {
+                    window.alert('Dosya okunamadı.');
+                }
+            };
+    
+            reader.readAsText(file);
+        });
+    
+        inputFile.click();
+    });
 }
 
 function ensureProfilesBar() {
@@ -270,15 +543,15 @@ function ensureProfilesBar() {
                             '<button type="button" class="sarisite-profile-btn-cancel">İptal</button>' +
                         '</div>';
         left.insertBefore(wrap, left.firstChild);
-        // wireProfilesBar(wrap);
+        wireProfilesBar(wrap);
     }
     renderProfilesBarChips(wrap);
 }
 
-function disabledSet(list) {
+function disabledIdSet(list) {
     var set = {};
     for (var i = 0; i < list.length; i++) {
-        set[list[i].title] = true;
+        set[String(list[i].id)] = true;
     }
     return set;
 }
@@ -356,6 +629,7 @@ function ensureMasterBar(container) {
     return bar;
 }
 
+/** Önce gizli modeller şeridi, hemen altında hepsini aç/kapat (ikisi de ul'dan önce). */
 function ensureHiddenModelsBar(container) {
     var ul = findModelListUl(container);
     if (!ul) {
@@ -381,6 +655,7 @@ function syncHiddenBarVisibility(container) {
     bar.style.display = '';
 }
 
+/** Checkbox varsa onu; yoksa depodaki tercih (senkron bilinmiyorsa true). */
 function isShowHiddenModelsEnabled(container) {
     var cb = container && container.querySelector('.sarisite-show-hidden-cb');
     if (!cb) {
@@ -389,8 +664,8 @@ function isShowHiddenModelsEnabled(container) {
     return cb.checked;
 }
 
-function applyRowHiddenState(li, title, disabledSet, showHidden) {
-    if (disabledSet[title]) {
+function applyRowHiddenState(li, idStr, disabledSet, showHidden) {
+    if (disabledSet[idStr]) {
         if (showHidden) {
             li.classList.remove('sarisite-row-hidden');
         } else {
@@ -447,14 +722,14 @@ function wireMasterToggle(container) {
         if (wantAllEnabled) {
             setDisabledModels([]);
         } else {
-            var nextList = [];
+            var next = [];
             items.forEach(function (li) {
                 var entry = getLiModelEntry(li);
                 if (entry) {
-                    nextList.push(entry);
+                    next.push(entry);
                 }
             });
-            setDisabledModels(nextList);
+            setDisabledModels(next);
         }
 
         var request = {};
@@ -488,14 +763,14 @@ function wireHiddenBarCheckbox(container) {
         request[STORAGE_SHOW_HIDDEN_MODELS] = storageObj[STORAGE_SHOW_HIDDEN_MODELS];
         saveStorage(request, function () {  
             var list = getDisabledModels();
-            var set = disabledSet(list);
+            var set = disabledIdSet(list);
             var lis = container.querySelectorAll('ul li[data-categorybreadcrumbid]');
             lis.forEach(function (li) {
                 var id = li.getAttribute('data-categorybreadcrumbid');
                 if (id == null) {
                     return;
                 }
-                applyRowHiddenState(li, title, set, show);
+                applyRowHiddenState(li, String(id), set, show);
             });
         });
     });
@@ -509,25 +784,27 @@ function bindToggleClick(toggle, li, categoryId, title) {
         var nextEnabled = !enabled;
         var list = getDisabledModels();
         var idStr = String(categoryId);
-        title = title?.trim() || '';
-
-        var nextList;
+        var next;
         if (nextEnabled) {
-            nextList = list.filter(function (x) { return x.title != title; });
+            next = list.filter(function (x) {
+                return String(x.id) !== idStr;
+            });
         } else {
-            nextList = list.slice();
-            var exists = nextList.some(function (x) { return x.title == title });
+            next = list.slice();
+            var exists = next.some(function (x) {
+                return String(x.id) === idStr;
+            });
             if (!exists) {
-                nextList.push({ id: idStr, title: title });
+                next.push({ id: idStr, title: (title || '').trim() });
             }
         }
 
-        setDisabledModels(nextList);
+        setDisabledModels(next);
         updateToggleVisual(toggle, nextEnabled);
         var container = document.getElementById('searchCategoryContainer');
-        var set = disabledSet(nextList);
+        var set = disabledIdSet(next);
         var showHidden = isShowHiddenModelsEnabled(container);
-        applyRowHiddenState(li, title, set, showHidden);
+        applyRowHiddenState(li, idStr, set, showHidden);
         syncHiddenBarVisibility(container);
         if (container) {
             syncMasterCheckbox(container);
@@ -560,7 +837,7 @@ function decorateCategoryList(container) {
     }
 
     var disabledList = getDisabledModels();
-    var set = disabledSet(disabledList);
+    var set = disabledIdSet(disabledList);
     ensureHiddenModelsBar(container);
     var hcb = container.querySelector('.sarisite-show-hidden-cb');
     if (hcb) {
@@ -568,6 +845,17 @@ function decorateCategoryList(container) {
     }
     ensureMasterBar(container);
     items.forEach(function (li) {
+        if (li.querySelector('.sarisite-model-toggle')) {
+            var exToggle = li.querySelector('.sarisite-model-toggle');
+            var exId = li.getAttribute('data-categorybreadcrumbid');
+            if (exId != null) {
+                var exOn = !set[String(exId)];
+                updateToggleVisual(exToggle, exOn);
+                applyRowHiddenState(li, String(exId), set, storageObj[STORAGE_SHOW_HIDDEN_MODELS]);
+            }
+            return;
+        }
+
         var id = li.getAttribute('data-categorybreadcrumbid');
         var link = findCategoryLink(li);
         if (id == null || !link) {
@@ -578,17 +866,6 @@ function decorateCategoryList(container) {
         if (!title) {
             var h2 = link.querySelector('h2');
             title = h2 ? h2.textContent.trim() : '';
-        }
-
-        if (li.querySelector('.sarisite-model-toggle')) {
-            var exToggle = li.querySelector('.sarisite-model-toggle');
-            var exId = li.getAttribute('data-categorybreadcrumbid');
-            if (exId != null) {
-                var exOn = !set[title];
-                updateToggleVisual(exToggle, exOn);
-                applyRowHiddenState(li, title, set, storageObj[STORAGE_SHOW_HIDDEN_MODELS]);
-            }
-            return;
         }
 
         var toggle = document.createElement('span');
@@ -607,7 +884,7 @@ function decorateCategoryList(container) {
         });
 
         li.insertBefore(toggle, li.firstChild);
-        applyRowHiddenState(li, title, set, storageObj[STORAGE_SHOW_HIDDEN_MODELS]);
+        applyRowHiddenState(li, String(id), set, storageObj[STORAGE_SHOW_HIDDEN_MODELS]);
     });
 
     syncHiddenBarVisibility(container);
@@ -631,7 +908,7 @@ function mergeParamsAndFilter(callback) {
         models: userParams.models.concat(extra),
         type: userParams.type,
     };
-    
+    //console.log(params);
     var result = FilterItems();
     if (typeof callback === 'function') {
         callback(result);
@@ -666,6 +943,9 @@ function observeCategoryContainer(container) {
     obs.observe(container, { childList: true, subtree: true });
 }
 
+/**
+ * Sol model listesi + filtre; sıralama / sayfa boyutu / sayfa değişince DOM yenilenir.
+ */
 function scheduleCategorySidebarRefresh() {
     if (categorySidebarRefreshTimer) {
         clearTimeout(categorySidebarRefreshTimer);
@@ -686,6 +966,10 @@ function scheduleCategorySidebarRefresh() {
     }, 280);
 }
 
+/**
+ * Sol filtredeki model listesi çoğu aramada AJAX ile geç gelir; ayrıca sıralama / paging
+ * sonrası #searchCategoryContainer yeniden oluştuğunda sürekli yeniden bağlanır.
+ */
 function bootstrapSearchCategorySidebar() {
     scheduleCategorySidebarRefresh();
 
@@ -716,176 +1000,79 @@ function bootstrapSearchCategorySidebar() {
 
 function FilterItems() {
     willBeRemoved = [];
-    var markaIndex = $("#searchResultsTable thead tr td:contains('Marka')").index();
-    var modelIndex = $("#searchResultsTable thead tr td:contains('Model')").index();
     var baslikIndex = $("#searchResultsTable thead tr td:contains('İlan Başlığı')").index();
+    var markaIndex = $("#searchResultsTable thead tr td:contains('Marka')").index();
     var seriIndex = $("#searchResultsTable thead tr td:contains('Seri')").index();
+    var modelIndex = $("#searchResultsTable thead tr td:contains('Model')").index();
     var marka = null;
     var baslik = null;
     var seri = null;
     var model = null;
-
     $('.searchResultsRowClass .searchResultsItem').each(function () {
+        var checkBaslik = null;
         var checkMarka = null;
         var checkModel = null;
-        var checkBaslik = null;
-        
-        var $row = $(this);
-        var $markaCell = $row.find('td:eq(' + markaIndex + ')');
-        var $modelCell = $row.find('td:eq(' + modelIndex + ')');
-        var $baslikCell = $row.find('td:eq(' + baslikIndex + ')');
-
         if (baslikIndex > -1) {
-            baslik = stripHtml($baslikCell.find('.classifiedTitle'));
+            baslik = $(this)
+                .find('td:eq(' + baslikIndex + ') .classifiedTitle')
+                ?.html()
+                ?.toLocaleLowerCase('tr')
+                ?.trim();
         }
         if (markaIndex > -1) {
-            marka = stripHtml($markaCell);
+            marka = $(this)
+                .find('td:eq(' + markaIndex + ')')
+                ?.html()
+                ?.toLocaleLowerCase('tr')
+                ?.trim();
         }
         if (seriIndex > -1) {
-            seri = stripHtml($row.find('td:eq(' + seriIndex + ')'));
+            seri = $(this)
+                .find('td:eq(' + seriIndex + ')')
+                ?.html()
+                ?.toLocaleLowerCase('tr')
+                ?.trim();
         }
-        if (modelIndex > -1) {
-            model = stripHtml($modelCell);
-        }
+        model = $(this)
+            .find('td:eq(' + modelIndex + ')')
+            ?.html()
+            ?.toLocaleLowerCase('tr')
+            ?.trim();
+
+        //console.log(marka, model, params);
 
         if (marka) {
             checkMarka = params.brands?.find(function (x) {
-                return marka == x;
+                return marka == x.toLocaleLowerCase('tr');
             });
         }
         if (seri || model || baslik) {
             checkModel = params.models?.find(function (x) {
-                return (seri?.includes(x) == true 
-                    || model?.includes(x) == true 
-                    || baslik?.includes(x) == true
+                return (
+                    seri?.includes(x.toLocaleLowerCase('tr')) == true ||
+                    model?.includes(x.toLocaleLowerCase('tr')) == true ||
+                    baslik?.includes(x.toLocaleLowerCase('tr')) == true
                 );
             });
         }
 
-        // Handle Blurring logic
-        var shouldBlur = false;
         if (params.type == 1) {
             if (checkMarka == null && checkModel == null) {
-                shouldBlur = true;
+                willBeRemoved.push($(this));
             }
         } else if (params.type == 2) {
             if (checkMarka != null || checkModel != null) {
-                shouldBlur = true;
+                willBeRemoved.push($(this));
             }
         }
-
-        if (shouldBlur) {
-            $row.addClass('sarisite-row-blurred');
-        } else {
-            $row.removeClass('sarisite-row-blurred');
-        }
-
-        // Inject Inline Toggles
-        if (markaIndex > -1) injectInlineToggle($markaCell, marka);
-        if (modelIndex > -1) injectInlineToggle($modelCell, model);
-        if (baslikIndex > -1) injectInlineToggle($baslikCell.find('.classifiedTitle'), baslik);
     });
 
-    sortRowsByBlur();
+    $('.searchResultsRowClass .searchResultsItem').show();
+    for (var i = 0; i < willBeRemoved.length; i++) {
+        willBeRemoved[i].hide();
+    }
 
     return { status: true, message: 'Filtreleme işlemi başarılı.' };
-}
-
-function sortRowsByBlur() {
-    var $tbody = $('#searchResultsTable tbody');
-    var $rows = $tbody.children('.searchResultsItem');
-  
-    var isAlreadySorted = true;
-  
-    let seenBlur = false;
-  
-    $rows.each(function () {
-      const isBlur = $(this).hasClass('sarisite-row-blurred');
-  
-      if (isBlur) {
-        seenBlur = true;
-      }
-
-      if (!isBlur && seenBlur) {
-        isAlreadySorted = false;
-        return false;
-      }
-    });
-  
-    if (isAlreadySorted) {
-        return;
-    }
-
-    console.log('sortRowsByBlur');
-  
-    var rows = $rows.get();
-  
-    rows.sort(function (a, b) {
-      var aBlur = $(a).hasClass('sarisite-row-blurred') ? 1 : 0;
-      var bBlur = $(b).hasClass('sarisite-row-blurred') ? 1 : 0;
-      return aBlur - bBlur;
-    });
-  
-    $tbody.append(rows);
-  }
-
-function stripHtml(elem) {
-    const td = elem.clone();
-    td.find('span').remove();
-    return td.text()?.trim();
-}
-
-function injectInlineToggle($el, text) {
-    if (!$el.length || $el.find('.sarisite-inline-toggle').length) {
-        var toggle = $el.find('.sarisite-inline-toggle');
-        if (toggle.length) {
-            var disabledList = getDisabledModels();
-            var isIncluded = !disabledList.some(x => x.title == text);
-            updateToggleVisual(toggle[0], isIncluded);
-        }
-        return;
-    }
-
-    var disabledList = getDisabledModels();
-    var isIncluded = !disabledList.some(x => x.title == text);
-
-    var toggle = $('<span class="sarisite-inline-toggle"></span>');
-    updateToggleVisual(toggle[0], isIncluded);
-
-    toggle.on('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        var currentList = getDisabledModels();
-        var alreadyDisabled = currentList.some(x => x.title == text);
-        var nextList;
-
-        if (alreadyDisabled) {
-            nextList = currentList.filter(x => x.title != text);
-        } else {
-            nextList = currentList.slice();
-            nextList.push({ id: String(Date.now()), title: text });
-        }
- 
-        setDisabledModels(nextList); 
-        var container = document.getElementById('searchCategoryContainer');
-        var set = disabledSet(nextList);
-        var showHidden = isShowHiddenModelsEnabled(container);
-        //applyRowHiddenState(li, text, set, showHidden);
-        syncHiddenBarVisibility(container);
-        if (container) {
-            syncMasterCheckbox(container);
-        }
-        mergeParamsAndFilter();
-
-        if(editingProfileId == DEFAULT_PROFILE_ID) {
-            var request = {};
-            request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
-            saveStorage(request);
-        }
-    });
-
-    $el.append(toggle);
 }
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
@@ -906,13 +1093,6 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 });
 
 $(document).ready(function () {
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-        console.log("Message from content script:", request);  
-        if (request?.type === "setting") {
-            storageObj[STORAGE_EXTENSION_ENABLED] = request.isEnabled;  
-        }
-        return true;
-    });
     getStorage(function () {     
         bootstrapSearchCategorySidebar();
         mergeParamsAndFilter();
@@ -921,17 +1101,36 @@ $(document).ready(function () {
 });
 
 function RegisterHandlers() {
-    // Re-registering handlers for dynamic content
-    var events = ['.pageNaviButtons li', '.paging-size', '.faceted-sort-buttons a', '.sort-size-menu a', '#searchResultsTable thead a', '.searchResultsTable thead a'];
-    events.forEach(function(selector) {
-        $(document).off('click', selector).on('click', selector, function () {
-            setTimeout(function () {
-                scheduleCategorySidebarRefresh();
-            }, 2000);
-        });
+    $(document).off('click', '.pageNaviButtons li');
+    $(document).on('click', '.pageNaviButtons li', function () {
+        setTimeout(function () {
+            scheduleCategorySidebarRefresh();
+        }, 2000);
     });
 
-    $(window).off('popstate.sarisite').on('popstate.sarisite', function () {
+    $(document).off('click', '.paging-size');
+    $(document).on('click', '.paging-size', function () {
+        setTimeout(function () {
+            scheduleCategorySidebarRefresh();
+        }, 2000);
+    });
+
+    $(document).off('click', '.faceted-sort-buttons a, .sort-size-menu a');
+    $(document).on('click', '.faceted-sort-buttons a, .sort-size-menu a', function () {
+        setTimeout(function () {
+            scheduleCategorySidebarRefresh();
+        }, 2000);
+    });
+
+    $(document).off('click', '#searchResultsTable thead a, .searchResultsTable thead a');
+    $(document).on('click', '#searchResultsTable thead a, .searchResultsTable thead a', function () {
+        setTimeout(function () {
+            scheduleCategorySidebarRefresh();
+        }, 2000);
+    });
+
+    $(window).off('popstate.sarisite');
+    $(window).on('popstate.sarisite', function () {
         scheduleCategorySidebarRefresh();
     });
 }
