@@ -7,12 +7,10 @@ $(document).ready(function() {
         var isEnabled = data[STORAGE_EXTENSION_ENABLED];
         
         $('#extToggle').prop('checked', isEnabled);
-        $('#extStatus').text(isEnabled ? 'Aktif' : 'Pasif');
     });
 
     $(document).on('change', '#extToggle', function(e) {
         const checked = this.checked;
-        $('#extStatus').text(checked ? 'Aktif' : 'Pasif');
 
         var request = {};
         request[STORAGE_EXTENSION_ENABLED] = checked;

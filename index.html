@@ -92,6 +92,7 @@
         .contact-row {
             display: flex;
             align-items: baseline;
+            text-align: center;
             gap: 8px;
             margin-bottom: 6px;
             flex-wrap: wrap;
@@ -99,17 +100,54 @@
         .contact-row:last-child {
             margin-bottom: 0;
         }
-        .label {
-            font-weight: 600;
-            color: #57534e;
-            min-width: 52px;
-        }
         footer {
             text-align: center;
             font-size: 11px;
             color: #a8a29e;
             margin-top: 4px;
         }
+
+        .switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 34px;
+}
+
+.slider::before {
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #4CAF50;
+}
+
+input:checked + .slider::before {
+  transform: translateX(24px);
+}
     </style>
 </head>
 <body>
@@ -122,11 +160,11 @@
         <section>
             <h2>Durum</h2>
             <div class="contact-row">
-              <span class="label">Eklenti</span>
-              <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-                <input type="checkbox" id="extToggle" />
-                <span id="extStatus">Aktif</span>
-              </label>
+                <span class="label">Eklenti</span>
+                <label class="switch" style="margin-top: -9px;">
+                    <input id="extToggle" type="checkbox">
+                    <span class="slider"></span>
+                </label>
             </div>
           </section>
         <section>

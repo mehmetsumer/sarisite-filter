@@ -1,6 +1,3 @@
-var brandsList = [];
-var willBeRemoved = [];
-/** Popup veya varsayılan kullanıcı ayarları; her filtrelemede depodaki devre dışı modellerle birleştirilir. */
 var userParams = {
     brands: [],
     models: [],
@@ -177,10 +174,6 @@ function getStorage(callback) {
             isExtensionEnabled = false;
         }
         storageObj[STORAGE_EXTENSION_ENABLED] = isExtensionEnabled;
-        if(!isExtensionEnabled) {
-            console.error('UZANTI AKTİF DEĞİL');
-            return;
-        }
 
         var list = data[STORAGE_FILTER_PROFILES];
         if (!Array.isArray(list)) {
@@ -343,12 +336,13 @@ function ensureMasterBar(container) {
     if (existing) {
         return existing;
     }
+
     var bar = document.createElement('div');
     bar.className = 'sarisite-master-bar';
-    bar.innerHTML =
-        '<label title="İşaretli: tüm modeller dahil (✓). İşaretsiz: tümü hariç (✕).">' +
-        '<input type="checkbox" class="sarisite-master-all-enabled" checked="checked"/> Hepsini aç / kapat</label>';
+    bar.innerHTML = '<label title="İşaretli: tüm modeller dahil (✓). İşaretsiz: tümü hariç (✕).">' +
+                    '<input type="checkbox" class="sarisite-master-all-enabled" checked="checked"/> Hepsini aç / kapat</label>';
     parent.insertBefore(bar, ul);
+    
     var mcb = bar.querySelector('.sarisite-master-all-enabled');
     if (mcb) {
         mcb.checked = true;
@@ -361,11 +355,13 @@ function ensureHiddenModelsBar(container) {
     if (!ul) {
         return null;
     }
+
     var pane = ul.parentElement || container;
     var existing = pane.querySelector('.sarisite-hidden-models-bar');
     if (existing) {
         return existing;
     }
+
     var bar = document.createElement('div');
     bar.className = 'sarisite-hidden-models-bar';
     bar.innerHTML = '<label><input type="checkbox" class="sarisite-show-hidden-cb"/> Gizli modelleri göster</label>';
@@ -378,6 +374,7 @@ function syncHiddenBarVisibility(container) {
     if (!bar) {
         return;
     }
+
     bar.style.display = '';
 }
 
@@ -639,30 +636,42 @@ function mergeParamsAndFilter(callback) {
 }
 
 function observeCategoryContainer(container) {
-    if (!container) {
-        return;
-    }
+    if (!container) return;
     if (observedCategoryRoots) {
-        if (observedCategoryRoots.has(container)) {
-            return;
-        }
+        if (observedCategoryRoots.has(container)) return;
         observedCategoryRoots.add(container);
     } else if (container.dataset.sarisiteObserved) {
         return;
-    } else {
+    } 
+    else {
         container.dataset.sarisiteObserved = '1';
     }
 
     var t = null;
-    var obs = new MutationObserver(function () {
-        if (t) {
-            clearTimeout(t);
-        }
+    var obs = new MutationObserver(function (mutations) {
+        var hasNewItems = mutations.some(function (m) {
+            if (m.type !== 'childList' || !m.addedNodes.length) return false;
+            for (var i = 0; i < m.addedNodes.length; i++) {
+                var node = m.addedNodes[i];
+                if (node.nodeType !== 1) continue;
+                if (node.matches('li[data-categorybreadcrumbid]') ||
+                    (node.querySelector && node.querySelector('li[data-categorybreadcrumbid]'))
+                ) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        if (!hasNewItems) return; // Sadece toggle/class değişikliklerini yoksay
+
+        if (t) clearTimeout(t);
         t = setTimeout(function () {
             decorateCategoryList(container);
             mergeParamsAndFilter();
         }, 200);
     });
+
     obs.observe(container, { childList: true, subtree: true });
 }
 
@@ -673,49 +682,61 @@ function scheduleCategorySidebarRefresh() {
     categorySidebarRefreshTimer = setTimeout(function () {
         categorySidebarRefreshTimer = null;
         var cat = document.getElementById('searchCategoryContainer');
-        if (!cat) {
-            return;
-        }
+        if (!cat) return;
+
         decorateCategoryList(cat);
-        observeCategoryContainer(cat);
+        observeCategoryContainer(cat); // zaten izleniyorsa WeakSet guard'ı geçer
         mergeParamsAndFilter();
-        brandsList = $.map($('#searchCategoryContainer ul li a'), function (n) {
-            return $(n).attr('title');
-        });
+
+        if (!cat.dataset.sarisiteBrandsLoaded) {
+            cat.dataset.sarisiteBrandsLoaded = '1';
+        }
+
         ensureProfilesBar();
     }, 280);
 }
 
+var categoryContainerWatcher = null;
+
 function bootstrapSearchCategorySidebar() {
     scheduleCategorySidebarRefresh();
 
-    if (!documentCategoryRefreshObserver) {
-        documentCategoryRefreshObserver = new MutationObserver(function () {
-            scheduleCategorySidebarRefresh();
-        });
-        documentCategoryRefreshObserver.observe(document.documentElement, { childList: true, subtree: true });
+    if (!document.getElementById('searchCategoryContainer')) {
+        waitForCategoryContainer();
     }
 
-    var tries = 0;
-    var poll = setInterval(function () {
-        tries += 1;
-        if (document.getElementById('searchCategoryContainer') || tries >= 40) {
-            scheduleCategorySidebarRefresh();
-            clearInterval(poll);
-        }
-    }, 500);
+    window.addEventListener('load', function () {
+        scheduleCategorySidebarRefresh();
+    }, { once: true });
+}
 
-    window.addEventListener(
-        'load',
-        function () {
-            scheduleCategorySidebarRefresh();
-        },
-        { once: true }
-    );
+function waitForCategoryContainer() {
+    if (categoryContainerWatcher) return;
+
+    categoryContainerWatcher = new MutationObserver(function (mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+            var added = mutations[i].addedNodes;
+            for (var j = 0; j < added.length; j++) {
+                var node = added[j];
+                if (node.nodeType !== 1) continue;
+
+                if (node.id === 'searchCategoryContainer' 
+                        || (node.querySelector && node.querySelector('#searchCategoryContainer'))) 
+                {
+                    categoryContainerWatcher.disconnect();
+                    categoryContainerWatcher = null;
+                    scheduleCategorySidebarRefresh();
+                    return;
+                }
+            }
+        }
+    });
+
+    var target = document.body || document.documentElement;
+    categoryContainerWatcher.observe(target, { childList: true, subtree: false });
 }
 
 function FilterItems() {
-    willBeRemoved = [];
     var markaIndex = $("#searchResultsTable thead tr td:contains('Marka')").index();
     var modelIndex = $("#searchResultsTable thead tr td:contains('Model')").index();
     var baslikIndex = $("#searchResultsTable thead tr td:contains('İlan Başlığı')").index();
@@ -749,9 +770,7 @@ function FilterItems() {
         }
 
         if (marka) {
-            checkMarka = params.brands?.find(function (x) {
-                return marka == x;
-            });
+            checkMarka = params.brands?.find(function (x) { return marka == x; });
         }
         if (seri || model || baslik) {
             checkModel = params.models?.find(function (x) {
@@ -762,7 +781,6 @@ function FilterItems() {
             });
         }
 
-        // Handle Blurring logic
         var shouldBlur = false;
         if (params.type == 1) {
             if (checkMarka == null && checkModel == null) {
@@ -816,10 +834,7 @@ function sortRowsByBlur() {
         return;
     }
 
-    console.log('sortRowsByBlur');
-  
-    var rows = $rows.get();
-  
+    var rows = $rows.get(); 
     rows.sort(function (a, b) {
       var aBlur = $(a).hasClass('sarisite-row-blurred') ? 1 : 0;
       var bBlur = $(b).hasClass('sarisite-row-blurred') ? 1 : 0;
@@ -827,7 +842,7 @@ function sortRowsByBlur() {
     });
   
     $tbody.append(rows);
-  }
+}
 
 function stripHtml(elem) {
     const td = elem.clone();
@@ -869,9 +884,6 @@ function injectInlineToggle($el, text) {
  
         setDisabledModels(nextList); 
         var container = document.getElementById('searchCategoryContainer');
-        var set = disabledSet(nextList);
-        var showHidden = isShowHiddenModelsEnabled(container);
-        //applyRowHiddenState(li, text, set, showHidden);
         syncHiddenBarVisibility(container);
         if (container) {
             syncMasterCheckbox(container);
@@ -888,40 +900,32 @@ function injectInlineToggle($el, text) {
     $el.append(toggle);
 }
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    RegisterHandlers();
-    if (request.requestType == 'filter') {
-        userParams = {
-            brands: request.brands || [],
-            models: request.models || [],
-            type: request.type != null ? request.type : 2,
-        };
-        mergeParamsAndFilter(function (result) {
-            sendResponse(result);
-        });
-        return true;
-    } else if (request.requestType == 'updateBrands') {
-        sendResponse({ status: true, message: 'Markalar güncellendi.', brands: brandsList });
-    }
-});
-
 $(document).ready(function () {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-        console.log("Message from content script:", request);  
+        //console.log("Message from content script:", request);  
         if (request?.type === "setting") {
-            storageObj[STORAGE_EXTENSION_ENABLED] = request.isEnabled;  
+            storageObj[STORAGE_EXTENSION_ENABLED] = request.isEnabled; 
+            if(storageObj[STORAGE_EXTENSION_ENABLED]) {
+                bootstrapSearchCategorySidebar();
+                mergeParamsAndFilter();
+                RegisterHandlers();    
+            }
+            else {
+                window.location.reload(true);
+            } 
         }
         return true;
     });
-    getStorage(function () {     
-        bootstrapSearchCategorySidebar();
-        mergeParamsAndFilter();
-        RegisterHandlers();
+    getStorage(function () {  
+        if(storageObj[STORAGE_EXTENSION_ENABLED]) {
+            bootstrapSearchCategorySidebar();
+            mergeParamsAndFilter();
+            RegisterHandlers();
+        }
     });
 });
 
 function RegisterHandlers() {
-    // Re-registering handlers for dynamic content
     var events = ['.pageNaviButtons li', '.paging-size', '.faceted-sort-buttons a', '.sort-size-menu a', '#searchResultsTable thead a', '.searchResultsTable thead a'];
     events.forEach(function(selector) {
         $(document).off('click', selector).on('click', selector, function () {
