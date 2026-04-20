@@ -108,6 +108,7 @@ function setDisabledModels(list) {
 
     var categoryProfiles = profilesForCurrentCategory(ctx.categoryId);
     var profile = categoryProfiles.find(function (x) { return x.id === editingProfileId; });     
+    console.log(profile, editingProfileId, DEFAULT_PROFILE_ID);
     if(!profile && editingProfileId == DEFAULT_PROFILE_ID) {
         profile = {
             id: DEFAULT_PROFILE_ID,
@@ -167,19 +168,25 @@ function getStorage(callback) {
         if (!Array.isArray(list)) {
             list = [];
         }
+        storageObj[STORAGE_FILTER_PROFILES] = list;
+
         var showHidden = data[STORAGE_SHOW_HIDDEN_MODELS];
         if (showHidden === undefined) {
             showHidden = true;
         }
+        storageObj[STORAGE_SHOW_HIDDEN_MODELS] = showHidden;
+
         var lastSelectedProfileId = data[STORAGE_LAST_SELECTED_PROFILE_ID];
         if (lastSelectedProfileId) {
-            editingProfileId = lastSelectedProfileId;
+            var ctx = getPageCategoryContext();
+            var categoryProfiles = profilesForCurrentCategory(ctx.categoryId);
+            var profile = categoryProfiles.find(function (x) { return x.id === lastSelectedProfileId; }); 
+            if(profile) {
+                editingProfileId = lastSelectedProfileId;
+            }
             viewing = true;
         }
-
         storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = editingProfileId;
-        storageObj[STORAGE_SHOW_HIDDEN_MODELS] = showHidden;
-        storageObj[STORAGE_FILTER_PROFILES] = list;
 
         // console.log('getStorage:', storageObj);
         callback();
