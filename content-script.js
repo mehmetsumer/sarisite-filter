@@ -1,4 +1,4 @@
-console.log = function() { };
+//console.log = function() { };
 
 const filterTypes = {
     Blur: 'Blur',
@@ -514,7 +514,8 @@ function ensureProfilesBar() {
     
             const now = new Date();
             const fileName = `sarisite_${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${
-                now.getFullYear()}_${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}.json`;
+                now.getFullYear()}_${String(now.getHours()).padStart(2, '0')}-${
+                    String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}.json`;
     
             const a = document.createElement('a');
             a.href = url;
@@ -543,7 +544,7 @@ function ensureProfilesBar() {
     
                         saveStorage(storageObj, function () {
                             window.alert('İçe aktarıldı.');
-                            ensureProfilesBar();
+                            RefreshDom();
                         });
                     } catch (err) {
                         window.alert('Dosya okunamadı.');
@@ -744,14 +745,14 @@ function wireMasterToggle(container) {
         if (wantAllEnabled) {
             setDisabledModels([]);
         } else {
-            var next = [];
+            var nextList = [];
             items.forEach(function (li) {
                 var entry = getLiModelEntry(li);
                 if (entry) {
-                    next.push(entry);
+                    nextList.push(entry);
                 }
             });
-            setDisabledModels(next);
+            setDisabledModels(nextList);
         }
 
         var request = {};
@@ -789,8 +790,9 @@ function wireHiddenBarCheckbox(container) {
                 if (id == null) {
                     return;
                 }
-                applyRowHiddenState(li, title, set, show); // todo: burdaki title nerde hocam.
+                //applyRowHiddenState(li, title, set, show); // todo: burdaki title nerde hocam.
             });
+            RefreshDom();
         });
     });
 }
@@ -805,21 +807,21 @@ function bindToggleClick(toggle, li, categoryId, title) {
         var idStr = String(categoryId);
         title = title?.trim() || '';
 
-        var next;
+        var nextList;
         if (nextEnabled) {
-            next = list.filter(function (x) { return x.title != title; });
+            nextList = list.filter(function (x) { return x.title != title; });
         } else {
-            next = list.slice();
-            var exists = next.some(function (x) { return x.title === title; });
+            nextList = list.slice();
+            var exists = nextList.some(function (x) { return x.title === title; });
             if (!exists) {
-                next.push({ id: idStr, title: title });
+                nextList.push({ id: idStr, title: title });
             }
         }
 
-        setDisabledModels(next);
+        setDisabledModels(nextList);
         updateToggleVisual(toggle, nextEnabled);
         var container = document.getElementById('searchCategoryContainer');
-        var set = disabledSet(next);
+        var set = disabledSet(nextList);
         var showHidden = isShowHiddenModelsEnabled(container);
         applyRowHiddenState(li, title, set, showHidden);
         syncHiddenBarVisibility(container);
@@ -941,7 +943,6 @@ function FilterItems() {
     $('.searchResultsRowClass .searchResultsItem').each(function () {
         var checkMarka = null;
         var checkModel = null;
-        var checkBaslik = null;
         
         var $row = $(this);
         var $markaCell = $row.find('td:eq(' + markaIndex + ')');
@@ -988,14 +989,14 @@ function FilterItems() {
             if(params.filterType == filterTypes.Hide) {
                 $row.hide();
             }
-            else {
+            else if(!$row.hasClass('sarisite-row-blurred'))  {
                 $row.addClass('sarisite-row-blurred');
             }
         } else {
             if(params.filterType == filterTypes.Hide) {
                 $row.show();
             }
-            else {
+            else if($row.hasClass('sarisite-row-blurred')) {
                 $row.removeClass('sarisite-row-blurred');
             }
         }
@@ -1082,16 +1083,20 @@ function injectInlineToggle($el, text) {
         console.log('[sarisite] injectInlineToggle: CLICK.');
         e.preventDefault();
         e.stopPropagation();
-        
+         
+        var nextList = [];
+
         var currentList = getDisabledModels();
         var alreadyDisabled = currentList.some(x => x.title == text);
-        var nextList;
-
         if (alreadyDisabled) {
             nextList = currentList.filter(x => x.title != text);
         } else {
             nextList = currentList.slice();
-            nextList.push({ id: String(Date.now()), title: text, isInline: true, });
+            nextList.push({ 
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 9), 
+                title: text, 
+                isInline: true, 
+            });
         }
  
         setDisabledModels(nextList); 
