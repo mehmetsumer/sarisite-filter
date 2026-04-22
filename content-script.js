@@ -75,10 +75,17 @@ function injectBaseStyles() {
         '.sarisite-profiles-chips { margin-top:5px; display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }',
         '.sarisite-profile-chip { display: inline-flex; align-items: center; gap: 2px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2px 4px 2px 6px; font-size: 11px; }',
         '.sarisite-profile-chip button { border: none; background: transparent; cursor: pointer; padding: 2px 4px; border-radius: 4px; font-size: 11px; line-height: 1.2; }',
+         
+        '.sarisite-inlinemodels-row { margin-top:10px; align-items: flex-start; gap: 8px; flex-wrap: wrap; }',
+        '.sarisite-inlinemodels-label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; flex-shrink: 0; padding-top: 4px; }',
+        '.sarisite-inlinemodels-chips { margin-top:5px; display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }',
+        '.sarisite-inlinemodels-chip { display: inline-flex; align-items: center; gap: 2px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2px 4px 2px 6px; font-size: 11px; }',
+        '.sarisite-inlinemodels-chip button { border: none; background: transparent; cursor: pointer; padding: 2px 4px; border-radius: 4px; font-size: 11px; line-height: 1.2; }',
+
         '.active { border: 2px solid #0d9488;}',
         '.sarisite-profile-load { color: #0f172a; font-weight: 600; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }',
         '.sarisite-profile-edit:hover { background: #e0f2fe; }',
-        '.sarisite-profile-delete:hover { background: #fee2e2; color: #b91c1c; }',
+        '.sarisite-profile-delete:hover, .sarisite-inlinemodels-delete:hover { background: #fee2e2; color: #b91c1c; }',
         '.sarisite-profiles-actions { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }',
         '.sarisite-profile-name-input { flex: 1; min-width: 100px; padding: 4px 8px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px; }',
         '.sarisite-profile-btn-new, .sarisite-profile-btn-commit, .sarisite-profile-btn-cancel { padding: 4px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; border: 1px solid #94a3b8; background: #fff; }',
@@ -255,28 +262,28 @@ function renderProfilesBarChips(wrap) {
         var chip = document.createElement('div');
         chip.className = 'sarisite-profile-chip' + (p.id == editingProfileId ? ' active' : '');
         // active varsa active yap.
-        chip.setAttribute('data-profile-id', p.id);
+        chip.setAttribute('data-id', p.id);
         
         var loadBtn = document.createElement('button');
         loadBtn.type = 'button';
         loadBtn.className = 'sarisite-profile-load';
         loadBtn.textContent = p.name || 'Adsız';
         loadBtn.title = 'Yükle: ' + (p.name || '');
-        loadBtn.setAttribute('data-profile-id', p.id);
+        loadBtn.setAttribute('data-id', p.id);
 
         var editBtn = document.createElement('button');
         editBtn.type = 'button';
         editBtn.className = 'sarisite-profile-edit';
         editBtn.innerHTML = '&#9998;';
         editBtn.title = 'Düzenle';
-        editBtn.setAttribute('data-profile-id', p.id);
+        editBtn.setAttribute('data-id', p.id);
 
         var delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'sarisite-profile-delete';
         delBtn.textContent = '\u00D7';
         delBtn.title = 'Sil';
-        delBtn.setAttribute('data-profile-id', p.id);
+        delBtn.setAttribute('data-id', p.id);
         chip.appendChild(loadBtn);
         chip.appendChild(editBtn);
         chip.appendChild(delBtn);
@@ -295,6 +302,82 @@ function renderProfilesBarChips(wrap) {
     console.log('[sarisite] renderProfilesBarChips');
 }
 
+function renderDisabledInlineModelChips(wrap) {
+    var chipsEl = wrap.querySelector('.sarisite-inlinemodels-chips');        
+    if (!chipsEl) {
+        return;
+    }
+
+    chipsEl.innerHTML = '';
+
+    const rowEl = $('.sarisite-inlinemodels-row');
+    if(!rowEl) {
+        return;
+    }
+    
+    // console.log('[sarisite] ', rowEl.is(':visible'));
+
+    if(storageObj[STORAGE_FILTER_TYPE] == filterTypes.Blur) {
+        if(rowEl.is(':visible')) {
+            rowEl.hide();
+        }
+        return;
+    }
+
+    rowEl.show();
+
+    const disabledModels = getDisabledModels().filter(x => x.isInline);
+    // todo: isInline filtresi koyulacak.
+    // todo: Mod Hide ise burasi olacak.
+    disabledModels.forEach(function (x) {
+
+        var chip = document.createElement('div');
+        chip.className = 'sarisite-inlinemodels-chip';
+        chip.setAttribute('data-id', x.id);
+
+        var loadBtn = document.createElement('button');
+        loadBtn.type = 'button';
+        loadBtn.className = 'sarisite-inlinemodels-load';
+        loadBtn.textContent = x.title;
+        loadBtn.title = x.title;
+        loadBtn.setAttribute('data-id', x.id);
+
+        var delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'sarisite-inlinemodels-delete';
+        delBtn.textContent = '\u00D7';
+        delBtn.title = 'Sil';
+        delBtn.setAttribute('data-id', x.id);
+        delBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (!window.confirm('Bu kelimeyi filtreden kaldırmak istiyor musunuz?')) {
+                return;
+            }
+
+            const id = e.target.getAttribute('data-id');
+            const nextList = getDisabledModels().filter(function (x) { return x.id != id; });
+
+            setDisabledModels(nextList); 
+            const container = document.getElementById('searchCategoryContainer');
+            decorateCategoryList(container); 
+    
+            if(editingProfileId == DEFAULT_PROFILE_ID) {
+                var request = {};
+                request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+                saveStorage(request);
+            }
+
+            console.log('[sarisite] inlinemodels-delete: ', id);
+        });
+
+        chip.appendChild(loadBtn);
+        chip.appendChild(delBtn);
+        chipsEl.appendChild(chip);
+    });
+
+    console.log('[sarisite] renderDisabledInlineModelChips: ', disabledModels);
+}
+
 function ensureProfilesBar() {
     injectBaseStyles();
 
@@ -307,22 +390,26 @@ function ensureProfilesBar() {
     if (!wrap) {
         wrap = document.createElement('div');
         wrap.className = 'sarisite-profiles-wrap';
-        wrap.innerHTML = '<div class="sarisite-profiles-row">' +
-                            '<span class="sarisite-profiles-label">Profiller ' +
-                            '<button type="button" class="sarisite-profile-import" title="Import"> ⬇ </button>' +
-                            '<button type="button" class="sarisite-profile-export" title="Export"> ⬆ </button>' +
-                            '</span>' +
-                            '<div class="sarisite-profiles-chips"></div>' +
+        wrap.innerHTML =    '<div class="sarisite-profiles-row">' +
+                                '<span class="sarisite-profiles-label">Profiller ' +
+                                    '<button type="button" class="sarisite-profile-import" title="Import"> ⬇ </button>' +
+                                    '<button type="button" class="sarisite-profile-export" title="Export"> ⬆ </button>' +
+                                '</span>' +
+                                '<div class="sarisite-profiles-chips"></div>' +
                             '</div>' +
                             '<div class="sarisite-profiles-actions">' +
-                            '<input type="text" name="profile-name" class="sarisite-profile-name-input" placeholder="Profil adı" maxlength="80" />' +
-                            '<button type="button" class="sarisite-profile-btn-new">Yeni kaydet</button>' +
+                                '<input type="text" name="profile-name" class="sarisite-profile-name-input" placeholder="Profil adı" maxlength="80" />' +
+                                '<button type="button" class="sarisite-profile-btn-new">Yeni kaydet</button>' +
                             '</div>' +
                             '<div class="sarisite-profile-edit-banner" style="display:none">' +
-                            '<span class="sarisite-edit-label" style="display:block;width:100%;"></span>' +
-                            '<button type="button" class="sarisite-profile-btn-commit">Kaydet</button>' +
-                            '<button type="button" class="sarisite-profile-btn-cancel">İptal</button>' +
-                        '</div>';
+                                '<span class="sarisite-edit-label" style="display:block;width:100%;"></span>' +
+                                '<button type="button" class="sarisite-profile-btn-commit">Kaydet</button>' +
+                                '<button type="button" class="sarisite-profile-btn-cancel">İptal</button>' +
+                            '</div>' +
+                            '<div class="sarisite-inlinemodels-row">' +
+                                '<span class="sarisite-inlinemodels-label">Kelime Filtreleri</span>' +
+                                '<div class="sarisite-inlinemodels-chips"></div>' +
+                            '</div>';
         left.insertBefore(wrap, left.firstChild);
         
         wrap.addEventListener('click', function (e) {
@@ -330,12 +417,12 @@ function ensureProfilesBar() {
             if (!t || !t.closest) {
                 return;
             }
-            // var chip = t.closest('.sarisite-profile-chip');
+
             var loadBtn = t.closest('.sarisite-profile-load');
             var editBtn = t.closest('.sarisite-profile-edit');
             var delBtn = t.closest('.sarisite-profile-delete');
             var nameInput = wrap.querySelector('.sarisite-profile-name-input');
-            var id = (loadBtn || editBtn || delBtn) && (loadBtn || editBtn || delBtn).getAttribute('data-profile-id');
+            var id = (loadBtn || editBtn || delBtn) && (loadBtn || editBtn || delBtn).getAttribute('data-id');
             if (loadBtn && id) {
                 e.preventDefault();
                 editingProfileId = id;
@@ -397,7 +484,7 @@ function ensureProfilesBar() {
                 request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
                 request[STORAGE_LAST_SELECTED_PROFILE_ID] = storageObj[STORAGE_LAST_SELECTED_PROFILE_ID];
                 saveStorage(request, function () {
-                    ensureProfilesBar();
+                    RefreshDom();
                 });
             }
         });
@@ -569,6 +656,7 @@ function ensureProfilesBar() {
     }
 
     renderProfilesBarChips(wrap);
+    renderDisabledInlineModelChips(wrap);
 }
 
 function disabledSet(list) {
@@ -846,6 +934,58 @@ function bindToggleClick(toggle, li, categoryId, title) {
     });
 }
 
+function injectInlineToggle($el, text) {
+    if (!$el.length || $el.find('.sarisite-inline-toggle').length) {
+        var toggle = $el.find('.sarisite-inline-toggle');
+        if (toggle.length) {
+            var disabledList = getDisabledModels();
+            var isIncluded = !disabledList.some(x => x.title == text);
+            updateToggleVisual(toggle[0], isIncluded);
+        }
+        return;
+    }
+
+    var disabledList = getDisabledModels();
+    var isIncluded = !disabledList.some(x => x.title == text);
+
+    var toggle = $('<span class="sarisite-inline-toggle"></span>');
+    updateToggleVisual(toggle[0], isIncluded);
+
+    toggle.on('click', function(e) {
+        console.log('[sarisite] injectInlineToggle: CLICK.');
+        e.preventDefault();
+        e.stopPropagation();
+         
+        var nextList = [];
+
+        var currentList = getDisabledModels();
+        var alreadyDisabled = currentList.some(x => x.title == text);
+        if (alreadyDisabled) {
+            nextList = currentList.filter(x => x.title != text);
+        } else {
+            nextList = currentList.slice();
+            nextList.push({ 
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 9), 
+                title: text, 
+                isInline: true, 
+            });
+        }
+ 
+        setDisabledModels(nextList); 
+        var container = document.getElementById('searchCategoryContainer');
+        decorateCategoryList(container); 
+
+        if(editingProfileId == DEFAULT_PROFILE_ID) {
+            var request = {};
+            request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+            saveStorage(request);
+        }
+    });
+
+    $el.append(toggle);
+    //console.log('[sarisite] injectInlineToggle');
+}
+
 function findCategoryLink(li) {
     return (li.querySelector('a[href*="category"]') 
             || li.querySelector('a[href*="Category"]') 
@@ -1070,59 +1210,6 @@ function stripHtml(elem) {
     return td.text()?.trim();
 }
 
-function injectInlineToggle($el, text) {
-    if (!$el.length || $el.find('.sarisite-inline-toggle').length) {
-        var toggle = $el.find('.sarisite-inline-toggle');
-        if (toggle.length) {
-            var disabledList = getDisabledModels();
-            var isIncluded = !disabledList.some(x => x.title == text);
-            updateToggleVisual(toggle[0], isIncluded);
-        }
-        return;
-    }
-
-    var disabledList = getDisabledModels();
-    var isIncluded = !disabledList.some(x => x.title == text);
-
-    var toggle = $('<span class="sarisite-inline-toggle"></span>');
-    updateToggleVisual(toggle[0], isIncluded);
-
-    toggle.on('click', function(e) {
-        console.log('[sarisite] injectInlineToggle: CLICK.');
-        e.preventDefault();
-        e.stopPropagation();
-         
-        var nextList = [];
-
-        var currentList = getDisabledModels();
-        var alreadyDisabled = currentList.some(x => x.title == text);
-        if (alreadyDisabled) {
-            nextList = currentList.filter(x => x.title != text);
-        } else {
-            nextList = currentList.slice();
-            nextList.push({ 
-                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 9), 
-                title: text, 
-                isInline: true, 
-            });
-        }
- 
-        setDisabledModels(nextList); 
-        var container = document.getElementById('searchCategoryContainer');
-        decorateCategoryList(container);
-        
-
-        if(editingProfileId == DEFAULT_PROFILE_ID) {
-            var request = {};
-            request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
-            saveStorage(request);
-        }
-    });
-
-    $el.append(toggle);
-    //console.log('[sarisite] injectInlineToggle');
-}
-
 $(document).ready(function () {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log("[sarisite] Message from content script:", request);  
@@ -1138,8 +1225,8 @@ $(document).ready(function () {
         else if (request?.key === "filterType") {
             storageObj[STORAGE_FILTER_TYPE] = request.value; 
 
-            $('.searchResultsItem').show();
-            $('.searchResultsItem').removeClass('.sarisite-row-blurred');
+            $('.searchResultsRowClass .searchResultsItem').show();
+            $('.searchResultsRowClass .searchResultsItem').removeClass('sarisite-row-blurred');
             RefreshDom();
         }
         return true;
