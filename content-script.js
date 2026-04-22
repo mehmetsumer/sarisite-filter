@@ -1,4 +1,4 @@
-//console.log = function() { };
+console.log = function() { };
 
 const categoryTypes = {
     Main: 'Main',
@@ -370,7 +370,7 @@ function renderDisabledInlineModelChips(wrap) {
 
     let disabledModels = getDisabledModels();
     if(disabledModels.length > 0) {
-        
+
         if(categoryType != categoryTypes.Title) {
             disabledModels = disabledModels.filter(x => x.type != categoryType)
         }
