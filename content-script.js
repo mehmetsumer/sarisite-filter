@@ -1,15 +1,27 @@
-console.log = function() { };
+//console.log = function() { };
 
+const categoryTypes = {
+    Main: 'Main',
+    Brand: 'Marka',
+    Serie: 'Seri',
+    Model: 'Model',
+    Title: 'İlan Başlığı',
+    Other: 'Other',
+};
 const filterTypes = {
     Blur: 'Blur',
     Hide: 'Hide',
 };
-const params = {
-    brands: [],
-    models: [],
-    type: 2,
+const params = { 
     sortAfter: false,
 };
+params[categoryTypes.Main] = [];
+params[categoryTypes.Brand] = [];
+params[categoryTypes.Serie] = [];
+params[categoryTypes.Model] = [];
+params[categoryTypes.Title] = [];
+params[categoryTypes.Other] = [];
+console.log('[sarisite] params: ', params);
 
 const STORAGE_EXTENSION_ENABLED = 'sarisiteExtensionEnabled';
 const STORAGE_FILTER_TYPE = 'sarisiteFilterType';
@@ -150,12 +162,34 @@ function setFilterStateAndRefresh(disabledModels, showHidden, callback) {
     });
 }
 
+function getCategoryType() {
+    var depth = document.querySelectorAll('#search_cats > ul > li').length;
+    let type = categoryTypes.Other;
+    if(depth == 1) {
+        type = categoryTypes.Main;
+    }
+    else if(depth == 2) {
+        type = categoryTypes.Brand;
+    }
+    else if(depth == 3) {
+        type = categoryTypes.Serie;
+    }
+    else if(depth > 3) {
+        type = categoryTypes.Title;
+    }
+
+    //console.log('[sarisite] kategori tipi:', type);
+    return type;
+}
+
 function getPageCategoryContext() {
     var cat = document.querySelector('#search_cats input[name="category"]');
     var catName = document.querySelector('#categoryName');
+    var categoryType = getCategoryType();
     return {
         categoryId: cat ? String(cat.value) : '',
         categoryName: catName ? String(catName.value || '') : '',
+        categoryType: categoryType,
     };
 }
 
@@ -212,7 +246,9 @@ function getStorage(callback) {
                         , '|', storageObj[STORAGE_LAST_SELECTED_PROFILE_ID]
                     );
 
-        callback();
+        if (typeof callback === 'function') {
+            callback();
+        }
     });
 }
 
@@ -299,7 +335,7 @@ function renderProfilesBarChips(wrap) {
         banner.style.display = 'none';
     }
 
-    console.log('[sarisite] renderProfilesBarChips');
+    //console.log('[sarisite] renderProfilesBarChips');
 }
 
 function renderDisabledInlineModelChips(wrap) {
@@ -314,8 +350,6 @@ function renderDisabledInlineModelChips(wrap) {
     if(!rowEl) {
         return;
     }
-    
-    // console.log('[sarisite] ', rowEl.is(':visible'));
 
     if(storageObj[STORAGE_FILTER_TYPE] == filterTypes.Blur) {
         if(rowEl.is(':visible')) {
@@ -326,9 +360,12 @@ function renderDisabledInlineModelChips(wrap) {
 
     rowEl.show();
 
-    const disabledModels = getDisabledModels().filter(x => x.isInline);
-    disabledModels.forEach(function (x) {
+    var categoryType = getCategoryType();
 
+    const disabledModels = getDisabledModels().filter(x => x.type != categoryType);
+    //console.log('[sarisite] categoryType', categoryType, disabledModels);
+
+    disabledModels.forEach(function (x) {
         var chip = document.createElement('div');
         chip.className = 'sarisite-inlinemodels-chip';
         chip.setAttribute('data-id', x.id);
@@ -371,7 +408,7 @@ function renderDisabledInlineModelChips(wrap) {
         chipsEl.appendChild(chip);
     });
 
-    console.log('[sarisite] renderDisabledInlineModelChips: ', disabledModels);
+    //console.log('[sarisite] renderDisabledInlineModelChips: ', disabledModels);
 }
 
 function ensureProfilesBar() {
@@ -899,16 +936,20 @@ function bindToggleClick(toggle, li, categoryId, title) {
         var idStr = String(categoryId);
         title = title?.trim() || '';
 
+        const categoryType = getCategoryType();
+
         var nextList;
         if (nextEnabled) {
-            nextList = list.filter(function (x) { return x.title != title; });
+            nextList = list.filter(x => !(x.type == categoryType && x.title == title));
         } else {
             nextList = list.slice();
-            var exists = nextList.some(function (x) { return x.title === title; });
+            var exists = nextList.some(x => x.type == categoryType && x.title == title);
             if (!exists) {
-                nextList.push({ id: idStr, title: title });
+                nextList.push({ id: idStr, title: title, type: categoryType });
             }
         }
+
+        console.log('[sarisite] toggle CLICK categoryType');
 
         setDisabledModels(nextList);
         updateToggleVisual(toggle, nextEnabled);
@@ -945,25 +986,25 @@ function injectInlineToggle($el, text) {
     var isIncluded = !disabledList.some(x => x.title == text);
 
     var toggle = $('<span class="sarisite-inline-toggle"></span>');
-    updateToggleVisual(toggle[0], isIncluded);
-
     toggle.on('click', function(e) {
-        console.log('[sarisite] injectInlineToggle: CLICK.');
         e.preventDefault();
         e.stopPropagation();
          
         var nextList = [];
 
+        const index = $(e.target).closest('td').index();
+        const categoryType = stripHtml($('#searchResultsTable thead tr td').eq(index));
+
         var currentList = getDisabledModels();
-        var alreadyDisabled = currentList.some(x => x.title == text);
-        if (alreadyDisabled) {
-            nextList = currentList.filter(x => x.title != text);
+        var alreadyDisabled = currentList.some(x => x.type == categoryType && x.title == text);
+        if (alreadyDisabled) { 
+            nextList = currentList.filter(x => !(x.type == categoryType && x.title == text));
         } else {
             nextList = currentList.slice();
             nextList.push({ 
                 id: Date.now().toString(36) + Math.random().toString(36).slice(2, 9), 
                 title: text, 
-                isInline: true, 
+                type: categoryType,
             });
         }
  
@@ -977,6 +1018,8 @@ function injectInlineToggle($el, text) {
             saveStorage(request);
         }
     });
+
+    updateToggleVisual(toggle[0], isIncluded);
 
     $el.append(toggle);
     //console.log('[sarisite] injectInlineToggle');
@@ -1064,9 +1107,19 @@ function decorateCategoryList(container) {
 
 function mergeParamsAndFilter(callback) {
     var disabledList = getDisabledModels();
-    var extra = disabledList.map(function (x) { return x.title; });
-    params.brands = extra;
-    params.models = extra;
+
+    // console.log('[sarisite] mergeParamsAndFilter '
+    //     , '\r\nhepsi: ', disabledList
+    //     , '\r\nBrand: ', disabledList.filter(x => x.type == categoryTypes.Brand).map(function (x) { return x.title; })
+    //     , '\r\nSerie: ', disabledList.filter(x => x.type == categoryTypes.Serie).map(function (x) { return x.title; })
+    //     , '\r\nModel: ', disabledList.filter(x => x.type == categoryTypes.Model).map(function (x) { return x.title; })
+    //     , '\r\nTitle: ', disabledList.filter(x => x.type == categoryTypes.Title).map(function (x) { return x.title; })
+    // );
+
+    params[categoryTypes.Brand] = disabledList.filter(x => x.type == categoryTypes.Brand).map(function (x) { return x.title; });
+    params[categoryTypes.Serie] = disabledList.filter(x => x.type == categoryTypes.Serie).map(function (x) { return x.title; });
+    params[categoryTypes.Model] = disabledList.filter(x => x.type == categoryTypes.Model).map(function (x) { return x.title; });
+    params[categoryTypes.Title] = disabledList.filter(x => x.type == categoryTypes.Title).map(function (x) { return x.title; });
     
     var result = FilterItems();
     if (typeof callback === 'function') {
@@ -1086,47 +1139,50 @@ function FilterItems() {
 
     $('.searchResultsRowClass .searchResultsItem').each(function () {
         var checkMarka = null;
+        var checkSeri = null;
         var checkModel = null;
+        var checkBaslik = null;
         
         var $row = $(this);
+
         var $markaCell = $row.find('td:eq(' + markaIndex + ')');
+        var $seriCell = $row.find('td:eq(' + seriIndex + ')');
         var $modelCell = $row.find('td:eq(' + modelIndex + ')');
         var $baslikCell = $row.find('td:eq(' + baslikIndex + ')');
 
-        if (baslikIndex > -1) {
-            baslik = stripHtml($baslikCell.find('.classifiedTitle'));
-        }
         if (markaIndex > -1) {
             marka = stripHtml($markaCell);
         }
         if (seriIndex > -1) {
-            seri = stripHtml($row.find('td:eq(' + seriIndex + ')'));
+            seri = stripHtml($seriCell);
         }
         if (modelIndex > -1) {
             model = stripHtml($modelCell);
         }
+        if (baslikIndex > -1) {
+            baslik = stripHtml($baslikCell.find('.classifiedTitle'));
+        }
 
         if (marka) {
-            checkMarka = params.brands?.find(function (x) { return marka == x; });
+            checkMarka = params[categoryTypes.Brand]?.find(function (x) { return marka == x; });
         }
-        if (seri || model || baslik) {
-            checkModel = params.models?.find(function (x) {
-                return (seri?.includes(x) == true 
-                    || model?.includes(x) == true 
-                    || baslik?.includes(x) == true
-                );
-            });
+        if (seri) {
+            checkSeri = params[categoryTypes.Serie]?.find(function (x) { return seri == x; });
+        }
+        if (model) {
+            checkModel = params[categoryTypes.Model]?.find(function (x) { return model == x; });
+        }
+        if (baslik) {
+            checkBaslik = params[categoryTypes.Title]?.find(function (x) { return baslik == x; });
         }
 
         var shouldBlur = false;
-        if (params.type == 1) {
-            if (checkMarka == null && checkModel == null) {
-                shouldBlur = true;
-            }
-        } else if (params.type == 2) {
-            if (checkMarka != null || checkModel != null) {
-                shouldBlur = true;
-            }
+        if (checkMarka != null 
+            || checkSeri != null
+            || checkModel != null
+            || checkBaslik != null
+        ) {
+            shouldBlur = true;
         }
 
         if (shouldBlur) {
@@ -1145,13 +1201,13 @@ function FilterItems() {
             }
         }
 
-        // Inject Inline Toggles
+        if (seriIndex > -1) injectInlineToggle($seriCell, seri);
         if (markaIndex > -1) injectInlineToggle($markaCell, marka);
         if (modelIndex > -1) injectInlineToggle($modelCell, model);
         if (baslikIndex > -1) injectInlineToggle($baslikCell.find('.classifiedTitle'), baslik);
     });
 
-    console.log('[sarisite] FilterItems');
+    //console.log('[sarisite] FilterItems');
 
     if(storageObj[STORAGE_FILTER_TYPE] == filterTypes.Blur && params.sortAfter) 
     {
