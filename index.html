@@ -148,7 +148,20 @@ input:checked + .slider {
 input:checked + .slider::before {
   transform: translateX(24px);
 }
-    </style>
+
+.filter-type-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.filter-type-row label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+</style>
 </head>
 <body>
     <div class="wrap">
@@ -167,6 +180,20 @@ input:checked + .slider::before {
                 </label>
             </div>
           </section>
+          <section>
+            <h2>Filtre Tipi</h2>
+            <div class="filter-type-row">
+                <label>
+                    <input type="radio" name="filterType" value="Hide" checked>
+                    Gizle
+                </label>
+        
+                <label>
+                    <input type="radio" name="filterType" value="Blur">
+                    Bulanıklaştır
+                </label>
+            </div>
+        </section>
         <section>
             <h2>Hakkında</h2>
             <p>

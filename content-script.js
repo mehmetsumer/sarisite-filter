@@ -3,16 +3,16 @@
 const filterTypes = {
     Blur: 'Blur',
     Hide: 'Hide',
-}
+};
 const params = {
     brands: [],
     models: [],
     type: 2,
-    filterType: filterTypes.Blur,
     sortAfter: false,
 };
 
 const STORAGE_EXTENSION_ENABLED = 'sarisiteExtensionEnabled';
+const STORAGE_FILTER_TYPE = 'sarisiteFilterType';
 const STORAGE_FILTER_PROFILES = 'sarisiteFilterProfiles';
 const STORAGE_SHOW_HIDDEN_MODELS = 'sarisiteShowHiddenModels';
 const STORAGE_LAST_SELECTED_PROFILE_ID = 'sarisiteLastSelectedProfileId';
@@ -21,6 +21,7 @@ const STYLE_ID = 'sarisite-filter-inline-style';
 
 var storageObj = {};
 storageObj[STORAGE_EXTENSION_ENABLED] = true;
+storageObj[STORAGE_FILTER_TYPE] = filterTypes.Hide;
 storageObj[STORAGE_FILTER_PROFILES] = [];
 storageObj[STORAGE_SHOW_HIDDEN_MODELS] = true;
 storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = DEFAULT_PROFILE_ID;
@@ -163,12 +164,18 @@ function captureCurrentFilterState() {
 }
 
 function getStorage(callback) {
-    chrome.storage.local.get([STORAGE_EXTENSION_ENABLED, STORAGE_FILTER_PROFILES, STORAGE_SHOW_HIDDEN_MODELS, STORAGE_LAST_SELECTED_PROFILE_ID], function (data) {
+    chrome.storage.local.get([STORAGE_EXTENSION_ENABLED, STORAGE_FILTER_TYPE, STORAGE_FILTER_PROFILES, STORAGE_SHOW_HIDDEN_MODELS, STORAGE_LAST_SELECTED_PROFILE_ID], function (data) {
         var isExtensionEnabled = data[STORAGE_EXTENSION_ENABLED];
         if (isExtensionEnabled === undefined) {
             isExtensionEnabled = false;
         }
         storageObj[STORAGE_EXTENSION_ENABLED] = isExtensionEnabled;
+
+        var filterType = data[STORAGE_FILTER_TYPE];
+        if (filterType === undefined) {
+            filterType = filterTypes.Hide;
+        }
+        storageObj[STORAGE_FILTER_TYPE] = filterType;
 
         var list = data[STORAGE_FILTER_PROFILES];
         if (!Array.isArray(list)) {
@@ -192,6 +199,7 @@ function getStorage(callback) {
         storageObj[STORAGE_LAST_SELECTED_PROFILE_ID] = editingProfileId;
 
         console.log('[sarisite] getStorage: ', storageObj[STORAGE_EXTENSION_ENABLED] 
+                        , '|', storageObj[STORAGE_FILTER_TYPE]
                         , '|', storageObj[STORAGE_FILTER_PROFILES]
                         , '|', storageObj[STORAGE_SHOW_HIDDEN_MODELS]
                         , '|', storageObj[STORAGE_LAST_SELECTED_PROFILE_ID]
@@ -986,14 +994,14 @@ function FilterItems() {
         }
 
         if (shouldBlur) {
-            if(params.filterType == filterTypes.Hide) {
+            if(storageObj[STORAGE_FILTER_TYPE] == filterTypes.Hide) {
                 $row.hide();
             }
             else if(!$row.hasClass('sarisite-row-blurred'))  {
                 $row.addClass('sarisite-row-blurred');
             }
         } else {
-            if(params.filterType == filterTypes.Hide) {
+            if(storageObj[STORAGE_FILTER_TYPE] == filterTypes.Hide) {
                 $row.show();
             }
             else if($row.hasClass('sarisite-row-blurred')) {
@@ -1009,7 +1017,7 @@ function FilterItems() {
 
     console.log('[sarisite] FilterItems');
 
-    if(params.filterType == filterTypes.Blur && params.sortAfter) 
+    if(storageObj[STORAGE_FILTER_TYPE] == filterTypes.Blur && params.sortAfter) 
     {
         sortRowsByBlur();
     }
@@ -1118,14 +1126,21 @@ function injectInlineToggle($el, text) {
 $(document).ready(function () {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log("[sarisite] Message from content script:", request);  
-        if (request?.type === "setting") {
-            storageObj[STORAGE_EXTENSION_ENABLED] = request.isEnabled; 
+        if (request?.key === "isEnabled") {
+            storageObj[STORAGE_EXTENSION_ENABLED] = request.value; 
             if(storageObj[STORAGE_EXTENSION_ENABLED]) {  
                 domInterval = null;   
                 HandleChanges();
             } else {
                 window.location.reload(true);
             }
+        }
+        else if (request?.key === "filterType") {
+            storageObj[STORAGE_FILTER_TYPE] = request.value; 
+
+            $('.searchResultsItem').show();
+            $('.searchResultsItem').removeClass('.sarisite-row-blurred');
+            RefreshDom();
         }
         return true;
     });
