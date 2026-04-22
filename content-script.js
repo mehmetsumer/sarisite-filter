@@ -1,4 +1,4 @@
-//console.log = function() { };
+console.log = function() { };
 
 const categoryTypes = {
     Main: 'Main',
