@@ -327,20 +327,16 @@ function renderDisabledInlineModelChips(wrap) {
     rowEl.show();
 
     const disabledModels = getDisabledModels().filter(x => x.isInline);
-    // todo: isInline filtresi koyulacak.
-    // todo: Mod Hide ise burasi olacak.
     disabledModels.forEach(function (x) {
 
         var chip = document.createElement('div');
         chip.className = 'sarisite-inlinemodels-chip';
         chip.setAttribute('data-id', x.id);
 
-        var loadBtn = document.createElement('button');
-        loadBtn.type = 'button';
-        loadBtn.className = 'sarisite-inlinemodels-load';
-        loadBtn.textContent = x.title;
-        loadBtn.title = x.title;
-        loadBtn.setAttribute('data-id', x.id);
+        var titleSpan = document.createElement('span');
+        titleSpan.className = 'sarisite-inlinemodels-load';
+        titleSpan.textContent = x.title;
+        titleSpan.title = x.title;
 
         var delBtn = document.createElement('button');
         delBtn.type = 'button';
@@ -370,7 +366,7 @@ function renderDisabledInlineModelChips(wrap) {
             console.log('[sarisite] inlinemodels-delete: ', id);
         });
 
-        chip.appendChild(loadBtn);
+        chip.appendChild(titleSpan);
         chip.appendChild(delBtn);
         chipsEl.appendChild(chip);
     });
