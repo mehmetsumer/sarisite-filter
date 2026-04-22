@@ -1,4 +1,4 @@
-console.log = function() { };
+//console.log = function() { };
 
 const categoryTypes = {
     Main: 'Main',
@@ -164,17 +164,24 @@ function setFilterStateAndRefresh(disabledModels, showHidden, callback) {
 
 function getCategoryType() {
     var depth = document.querySelectorAll('#search_cats > ul > li').length;
-    let type = categoryTypes.Other;
-    if(depth == 1) {
-        type = categoryTypes.Main;
+    
+    const theadTr = $('#searchResultsTable thead tr');
+    var markaIndex = theadTr.find("td:contains('Marka')").index();
+    var seriIndex = theadTr.find("td:contains('Seri')").index();
+    var modelIndex = theadTr.find("td:contains('Model')").index();
+    var baslikIndex = theadTr.find("td:contains('İlan Başlığı')").index();
+    
+    let type = categoryTypes.Main;
+    if(markaIndex > -1) {
+        type = categoryTypes.Brand; 
     }
-    else if(depth == 2) {
-        type = categoryTypes.Brand;
-    }
-    else if(depth == 3) {
+    else if(seriIndex > -1) {
         type = categoryTypes.Serie;
     }
-    else if(depth > 3) {
+    else if(modelIndex > -1) {
+        type = categoryTypes.Model;
+    }
+    else if(baslikIndex > -1 && depth > 1) {
         type = categoryTypes.Title;
     }
 
@@ -185,11 +192,10 @@ function getCategoryType() {
 function getPageCategoryContext() {
     var cat = document.querySelector('#search_cats input[name="category"]');
     var catName = document.querySelector('#categoryName');
-    var categoryType = getCategoryType();
     return {
         categoryId: cat ? String(cat.value) : '',
         categoryName: catName ? String(catName.value || '') : '',
-        categoryType: categoryType,
+        categoryType: getCategoryType(),
     };
 }
 
@@ -362,53 +368,60 @@ function renderDisabledInlineModelChips(wrap) {
 
     var categoryType = getCategoryType();
 
-    const disabledModels = getDisabledModels().filter(x => x.type != categoryType);
-    //console.log('[sarisite] categoryType', categoryType, disabledModels);
+    let disabledModels = getDisabledModels();
+    if(disabledModels.length > 0) {
+        
+        if(categoryType != categoryTypes.Title) {
+            disabledModels = disabledModels.filter(x => x.type != categoryType)
+        }
+        //console.log('[sarisite] categoryType', categoryType, disabledModels);
 
-    disabledModels.forEach(function (x) {
-        var chip = document.createElement('div');
-        chip.className = 'sarisite-inlinemodels-chip';
-        chip.setAttribute('data-id', x.id);
+        disabledModels.forEach(function (x) {
+            var chip = document.createElement('div');
+            chip.className = 'sarisite-inlinemodels-chip';
+            chip.setAttribute('data-id', x.id);
 
-        var titleSpan = document.createElement('span');
-        titleSpan.className = 'sarisite-inlinemodels-load';
-        titleSpan.textContent = x.title;
-        titleSpan.title = x.title;
+            var titleSpan = document.createElement('span');
+            titleSpan.className = 'sarisite-inlinemodels-load';
+            titleSpan.textContent = x.title;
+            titleSpan.title = x.title;
 
-        var delBtn = document.createElement('button');
-        delBtn.type = 'button';
-        delBtn.className = 'sarisite-inlinemodels-delete';
-        delBtn.textContent = '\u00D7';
-        delBtn.title = 'Sil';
-        delBtn.setAttribute('data-id', x.id);
-        delBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            if (!window.confirm('Bu kelimeyi filtreden kaldırmak istiyor musunuz?')) {
-                return;
-            }
+            var delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'sarisite-inlinemodels-delete';
+            delBtn.textContent = '\u00D7';
+            delBtn.title = 'Sil';
+            delBtn.setAttribute('data-id', x.id);
+            delBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (!window.confirm('Bu kelimeyi filtreden kaldırmak istiyor musunuz?')) {
+                    return;
+                }
 
-            const id = e.target.getAttribute('data-id');
-            const nextList = getDisabledModels().filter(function (x) { return x.id != id; });
+                const id = e.target.getAttribute('data-id');
+                const nextList = getDisabledModels().filter(function (x) { return x.id != id; });
 
-            setDisabledModels(nextList); 
-            const container = document.getElementById('searchCategoryContainer');
-            decorateCategoryList(container); 
-    
-            if(editingProfileId == DEFAULT_PROFILE_ID) {
-                var request = {};
-                request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
-                saveStorage(request);
-            }
+                setDisabledModels(nextList); 
+                const container = document.getElementById('searchCategoryContainer');
+                decorateCategoryList(container); 
 
-            console.log('[sarisite] inlinemodels-delete: ', id);
+                if(editingProfileId == DEFAULT_PROFILE_ID) {
+                    var request = {};
+                    request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+                    saveStorage(request);
+                }
+
+                console.log('[sarisite] inlinemodels-delete: ', id);
+            });
+
+            chip.appendChild(titleSpan);
+            chip.appendChild(delBtn);
+            chipsEl.appendChild(chip);
         });
 
-        chip.appendChild(titleSpan);
-        chip.appendChild(delBtn);
-        chipsEl.appendChild(chip);
-    });
-
-    //console.log('[sarisite] renderDisabledInlineModelChips: ', disabledModels);
+        //console.log('[sarisite] renderDisabledInlineModelChips: ', disabledModels);
+    }
+    
 }
 
 function ensureProfilesBar() {
@@ -733,12 +746,15 @@ function getLiModelEntry(li) {
     if (id == null || !link) {
         return null;
     }
+
     var title = (link.getAttribute('title') || '').trim();
     if (!title) {
         var h2 = link.querySelector('h2');
         title = h2 ? h2.textContent.trim() : '';
     }
-    return { id: String(id), title: title };
+
+    //console.log('[sarisite] ', getCategoryType());
+    return { id: String(id), title: title, type: getCategoryType() };
 }
 
 function findModelListUl(container) {
@@ -1041,9 +1057,9 @@ function decorateCategoryList(container) {
 
     injectBaseStyles();
     var items = container.querySelectorAll('li[data-categorybreadcrumbid]');
-    if (!(items.length > 0)) {
-        return;
-    }
+    // if (!(items.length > 0)) {
+    //     return;
+    // }
 
     var disabledList = getDisabledModels();
     var set = disabledSet(disabledList);
@@ -1170,6 +1186,9 @@ function FilterItems() {
             checkSeri = params[categoryTypes.Serie]?.find(function (x) { return seri == x; });
         }
         if (model) {
+            if (!seri && params[categoryTypes.Serie].length > 0) {
+                checkSeri = params[categoryTypes.Serie]?.find(function (x) { return model == x; });
+            }
             checkModel = params[categoryTypes.Model]?.find(function (x) { return model == x; });
         }
         if (baslik) {
@@ -1207,7 +1226,7 @@ function FilterItems() {
         if (baslikIndex > -1) injectInlineToggle($baslikCell.find('.classifiedTitle'), baslik);
     });
 
-    //console.log('[sarisite] FilterItems');
+    console.log('[sarisite] FilterItems', params);
 
     if(storageObj[STORAGE_FILTER_TYPE] == filterTypes.Blur && params.sortAfter) 
     {
