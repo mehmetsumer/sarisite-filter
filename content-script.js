@@ -344,6 +344,19 @@ function renderProfilesBarChips(wrap) {
     //console.log('[sarisite] renderProfilesBarChips');
 }
 
+function kisalt(text, maxLength) {
+    if (text.length <= maxLength) return text;
+
+    let shortText = text.slice(0, maxLength);
+    let lastSpace = shortText.lastIndexOf(" ");
+
+    if (lastSpace > 0) {
+        shortText = shortText.slice(0, lastSpace);
+    }
+
+    return shortText + "...";
+}
+
 function renderDisabledInlineModelChips(wrap) {
     var chipsEl = wrap.querySelector('.sarisite-inlinemodels-chips');        
     if (!chipsEl) {
@@ -382,8 +395,7 @@ function renderDisabledInlineModelChips(wrap) {
             chip.setAttribute('data-id', x.id);
 
             var titleSpan = document.createElement('span');
-            titleSpan.className = 'sarisite-inlinemodels-load';
-            titleSpan.textContent = x.title;
+            titleSpan.textContent = kisalt(x.title, 15);
             titleSpan.title = x.title;
 
             var delBtn = document.createElement('button');
