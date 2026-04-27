@@ -556,7 +556,7 @@ function ensureProfilesBar() {
                 if (!window.confirm('Bu profili silmek istiyor musunuz?')) {
                     return;
                 }
-                
+
                 storageObj[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES].filter(x => x.id !== id);
                 if (editingProfileId === id) {
                     editingProfileId = DEFAULT_PROFILE_ID;
@@ -918,13 +918,14 @@ function wireMasterToggle(container) {
     if (!cb) {
         return;
     }
+    
     cb.addEventListener('change', function () {
-        var wantAllEnabled = cb.checked;
         var items = container.querySelectorAll('li[data-categorybreadcrumbid]');
         if (!(items.length > 0)) {
             return;
         }
 
+        const wantAllEnabled = cb.checked;
         const categoryType = getCategoryType();
 
         var nextList = getDisabledModels().filter(x => x.type != categoryType);
