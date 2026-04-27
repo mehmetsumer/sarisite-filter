@@ -1,7 +1,7 @@
 {
     "name": "Sarı Site Çoklu Filtreleme",
     "description": "Sarı Site (Sahibinden Çoklu Filtreleme) platformunda birden fazla markayı, modeli çoklu seçim yaparak filtreleyebilirsiniz.",
-    "version": "1.9",
+    "version": "2.0",
     "manifest_version": 3,
     "permissions": [ "storage" ],
     "action": {

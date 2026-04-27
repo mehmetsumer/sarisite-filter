@@ -1,4 +1,4 @@
-console.log = function() { };
+//console.log = function() { };
 
 const categoryTypes = {
     Main: 'Main',
@@ -95,6 +95,7 @@ function injectBaseStyles() {
         '.sarisite-inlinemodels-chip button { border: none; background: transparent; cursor: pointer; padding: 2px 4px; border-radius: 4px; font-size: 11px; line-height: 1.2; }',
 
         '.active { border: 2px solid #0d9488;}',
+        '.pointer { cursor: pointer; }',
         '.sarisite-profile-load { color: #0f172a; font-weight: 600; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }',
         '.sarisite-profile-edit:hover { background: #e0f2fe; }',
         '.sarisite-profile-delete:hover, .sarisite-inlinemodels-delete:hover { background: #fee2e2; color: #b91c1c; }',
@@ -395,8 +396,19 @@ function renderDisabledInlineModelChips(wrap) {
             chip.setAttribute('data-id', x.id);
 
             var titleSpan = document.createElement('span');
+            titleSpan.className = 'pointer';
             titleSpan.textContent = kisalt(x.title, 15);
-            titleSpan.title = x.title;
+            titleSpan.title = x.title;            
+            titleSpan.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                var url = new URL(window.location.href);
+
+                url.searchParams.set('query_text', x.title);
+
+                console.log(window.location.href, x.title);
+                window.open(url.toString(), '_blank');        
+            });
 
             var delBtn = document.createElement('button');
             delBtn.type = 'button';
