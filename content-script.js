@@ -1,4 +1,4 @@
-//console.log = function() { };
+console.log = function() { };
 
 const categoryTypes = {
     Main: 'Main',
@@ -401,7 +401,7 @@ function renderDisabledInlineModelChips(wrap) {
             titleSpan.title = x.title;            
             titleSpan.addEventListener('click', function (e) {
                 e.preventDefault();
-                
+
                 var url = new URL(window.location.href);
 
                 url.searchParams.set('query_text', x.title);
