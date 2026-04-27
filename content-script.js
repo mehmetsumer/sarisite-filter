@@ -1,4 +1,4 @@
-console.log = function() { };
+//console.log = function() { };
 
 const categoryTypes = {
     Main: 'Main',
@@ -92,7 +92,7 @@ function injectBaseStyles() {
         '.sarisite-inlinemodels-label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; flex-shrink: 0; padding-top: 4px; }',
         '.sarisite-inlinemodels-chips { margin-top:5px; display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }',
         '.sarisite-inlinemodels-chip { display: inline-flex; align-items: center; gap: 2px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2px 4px 2px 6px; font-size: 11px; }',
-        '.sarisite-inlinemodels-chip button { border: none; background: transparent; cursor: pointer; padding: 2px 4px; border-radius: 4px; font-size: 11px; line-height: 1.2; }',
+        '.sarisite-inlinemodels-delete { border: none; background: transparent; cursor: pointer; padding: 2px 4px; border-radius: 4px; font-size: 11px; line-height: 1.2; }',
 
         '.active { border: 2px solid #0d9488;}',
         '.pointer { cursor: pointer; }',
@@ -278,7 +278,7 @@ function escapeHtml(s) {
 function profilesForCurrentCategory(categoryId = null) {
     var ctx = getPageCategoryContext();
     categoryId ??= ctx.categoryId;
-    return storageObj[STORAGE_FILTER_PROFILES].filter(function (p) { return p.categoryId === categoryId; });
+    return storageObj[STORAGE_FILTER_PROFILES].filter(x=> x.categoryId === categoryId);
 }
 
 function currentProfile(profileId = null) {
@@ -380,11 +380,10 @@ function renderDisabledInlineModelChips(wrap) {
 
     rowEl.show();
 
-    var categoryType = getCategoryType();
+    const categoryType = getCategoryType();
 
     let disabledModels = getDisabledModels();
     if(disabledModels.length > 0) {
-
         if(categoryType != categoryTypes.Title) {
             disabledModels = disabledModels.filter(x => x.type != categoryType)
         }
@@ -416,31 +415,45 @@ function renderDisabledInlineModelChips(wrap) {
             delBtn.textContent = '\u00D7';
             delBtn.title = 'Sil';
             delBtn.setAttribute('data-id', x.id);
-            delBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                if (!window.confirm('Bu kelimeyi filtreden kaldırmak istiyor musunuz?')) {
-                    return;
-                }
-
-                const id = e.target.getAttribute('data-id');
-                const nextList = getDisabledModels().filter(function (x) { return x.id != id; });
-
-                setDisabledModels(nextList); 
-                const container = document.getElementById('searchCategoryContainer');
-                decorateCategoryList(container); 
-
-                if(editingProfileId == DEFAULT_PROFILE_ID) {
-                    var request = {};
-                    request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
-                    saveStorage(request);
-                }
-
-                console.log('[sarisite] inlinemodels-delete: ', id);
-            });
 
             chip.appendChild(titleSpan);
             chip.appendChild(delBtn);
             chipsEl.appendChild(chip);
+        });
+
+        $('.sarisite-inlinemodels-delete').off('click').on('click', function (e) {
+            e.preventDefault();
+
+            const id = $(this).data('id');
+            if (!id) {
+                return;
+            }
+
+            if (!window.confirm((id == 'all' ? 'Bütün kelimeleri' : 'Bu kelimeyi') + ' filtreden kaldırmak istiyor musunuz?')) {
+                return;
+            }
+
+            const categoryType = getCategoryType();
+
+            let nextList = getDisabledModels();
+            if(id == 'all') {
+                nextList = nextList.filter(x => x.type == categoryType);
+            }
+            else {
+                nextList = nextList.filter(x => x.id != id);
+            }
+
+            setDisabledModels(nextList); 
+            const container = document.getElementById('searchCategoryContainer');
+            decorateCategoryList(container); 
+
+            if(editingProfileId == DEFAULT_PROFILE_ID) {
+                var request = {};
+                request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
+                saveStorage(request);
+            }
+
+            console.log('[sarisite] inlinemodels-delete: ', id);
         });
 
         //console.log('[sarisite] renderDisabledInlineModelChips: ', disabledModels);
@@ -477,7 +490,7 @@ function ensureProfilesBar() {
                                 '<button type="button" class="sarisite-profile-btn-cancel">İptal</button>' +
                             '</div>' +
                             '<div class="sarisite-inlinemodels-row">' +
-                                '<span class="sarisite-inlinemodels-label">Kelime Filtreleri</span>' +
+                                '<span class="sarisite-inlinemodels-label">Kelime Filtreleri <button type="button" class="sarisite-inlinemodels-delete" title="Sil" data-id="all">×</button></span>' +
                                 '<div class="sarisite-inlinemodels-chips"></div>' +
                             '</div>';
         left.insertBefore(wrap, left.firstChild);
@@ -543,7 +556,8 @@ function ensureProfilesBar() {
                 if (!window.confirm('Bu profili silmek istiyor musunuz?')) {
                     return;
                 }
-                storageObj[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES].filter(function (x) { return x.id !== id; });
+                
+                storageObj[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES].filter(x => x.id !== id);
                 if (editingProfileId === id) {
                     editingProfileId = DEFAULT_PROFILE_ID;
                 }
@@ -911,18 +925,19 @@ function wireMasterToggle(container) {
             return;
         }
 
-        if (wantAllEnabled) {
-            setDisabledModels([]);
-        } else {
-            var nextList = [];
+        const categoryType = getCategoryType();
+
+        var nextList = getDisabledModels().filter(x => x.type != categoryType);
+        if (!wantAllEnabled) {
             items.forEach(function (li) {
                 var entry = getLiModelEntry(li);
                 if (entry) {
                     nextList.push(entry);
                 }
             });
-            setDisabledModels(nextList);
         }
+
+        setDisabledModels(nextList);
 
         var request = {};
         request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
