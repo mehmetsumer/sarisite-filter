@@ -191,23 +191,16 @@ function getCategoryType() {
 }
 
 function getPageCategoryContext() {
-    var cat = document.querySelector('#search_cats input[name="category"]');
-    var catName = document.querySelector('#categoryName');
+    const cat = document.querySelector('#search_cats input[name="category"]');
+    const catName = document.querySelector('#categoryName');
+    const catType = getCategoryType();
+
+    console.log('[sarisite] getPageCategoryContext: ', cat?.value, catName?.value, catType);
+
     return {
         categoryId: cat ? String(cat.value) : '',
         categoryName: catName ? String(catName.value || '') : '',
-        categoryType: getCategoryType(),
-    };
-}
-
-function captureCurrentFilterState() {
-    var disabledList = getDisabledModels();
-    var ctx = getPageCategoryContext();
-    return {
-        disabledModels: disabledList,
-        showHidden: storageObj[STORAGE_SHOW_HIDDEN_MODELS],
-        categoryId: ctx.categoryId,
-        categoryName: ctx.categoryName,
+        categoryType: catType,
     };
 }
 
@@ -260,7 +253,7 @@ function getStorage(callback) {
 }
 
 function saveStorage(obj, callback) {
-    console.log('[sarisite] saveStorage: ', obj);
+    console.log('[sarisite] saveStorage: ', editingProfileId, obj);
     chrome.storage.local.set(obj, callback);
 }
 
@@ -278,13 +271,13 @@ function escapeHtml(s) {
 function profilesForCurrentCategory(categoryId = null) {
     var ctx = getPageCategoryContext();
     categoryId ??= ctx.categoryId;
-    return storageObj[STORAGE_FILTER_PROFILES].filter(x=> x.categoryId === categoryId);
+    return storageObj[STORAGE_FILTER_PROFILES].filter(x => x.categoryId === categoryId);
 }
 
 function currentProfile(profileId = null) {
     profileId ??= editingProfileId;
     var categoryProfiles = profilesForCurrentCategory();
-    return categoryProfiles.find(function (x) { return x.id === profileId; });
+    return categoryProfiles.find(x => x.id === profileId);
 }
 
 function renderProfilesBarChips(wrap) {
@@ -583,8 +576,8 @@ function ensureProfilesBar() {
                 return;
             }
     
-            var state = captureCurrentFilterState();
-            if (!state.categoryId) {
+            var ctx = getPageCategoryContext();
+            if (!ctx.categoryId) {
                 window.alert('Kategori bilgisi bulunamadı. Önce marka/model sayfasında olun.');
                 return;
             }
@@ -597,10 +590,10 @@ function ensureProfilesBar() {
             storageObj[STORAGE_FILTER_PROFILES].push({
                 id: Date.now().toString(36) + Math.random().toString(36).slice(2, 9),
                 name: name,
-                categoryId: state.categoryId,
-                categoryName: state.categoryName,
-                disabledModels: state.disabledModels,
-                showHiddenModels: state.showHidden,
+                categoryId: ctx.categoryId,
+                categoryName: ctx.categoryName,
+                disabledModels: getDisabledModels(),
+                showHiddenModels: storageObj[STORAGE_SHOW_HIDDEN_MODELS],
             });
             var request = {};
             request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
@@ -621,7 +614,7 @@ function ensureProfilesBar() {
             }
             var newName = (nameInput && nameInput.value.trim()) || '';
             
-            var p = storageObj[STORAGE_FILTER_PROFILES].find(function (x) { return x.id === editingProfileId; });
+            var p = storageObj[STORAGE_FILTER_PROFILES].find(x=> x.id == editingProfileId);
             if (!p) {
                 editingProfileId = DEFAULT_PROFILE_ID;
                 ensureProfilesBar();
@@ -636,12 +629,12 @@ function ensureProfilesBar() {
                 }
                 p.name = newName;
             }
-    
-            var state = captureCurrentFilterState();
-            p.disabledModels = state.disabledModels;
-            p.showHiddenModels = state.showHidden;
-            p.categoryId = state.categoryId;
-            p.categoryName = state.categoryName;
+
+            var ctx = getPageCategoryContext();
+            p.categoryId = ctx.categoryId;
+            p.categoryName = ctx.categoryName;
+            p.disabledModels = getDisabledModels();
+            p.showHiddenModels = storageObj[STORAGE_SHOW_HIDDEN_MODELS];
     
             var request = {};
             request[STORAGE_FILTER_PROFILES] = storageObj[STORAGE_FILTER_PROFILES];
@@ -1266,7 +1259,7 @@ function FilterItems() {
         if (baslikIndex > -1) injectInlineToggle($baslikCell.find('.classifiedTitle'), baslik);
     });
 
-    console.log('[sarisite] FilterItems', params);
+    //console.log('[sarisite] FilterItems', params);
 
     if(storageObj[STORAGE_FILTER_TYPE] == filterTypes.Blur && params.sortAfter) 
     {
