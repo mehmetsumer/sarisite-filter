@@ -90,7 +90,7 @@ function injectBaseStyles() {
          
         '.sarisite-inlinemodels-row { margin-top:10px; align-items: flex-start; gap: 8px; flex-wrap: wrap; }',
         '.sarisite-inlinemodels-label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; flex-shrink: 0; padding-top: 4px; }',
-        '.sarisite-inlinemodels-chips { margin-top:5px; display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }',
+        '.sarisite-inlinemodels-chips { margin-top:5px; display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; max-height: 200px; overflow: auto; }',
         '.sarisite-inlinemodels-chip { display: inline-flex; align-items: center; gap: 2px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2px 4px 2px 6px; font-size: 11px; }',
         '.sarisite-inlinemodels-delete { border: none; background: transparent; cursor: pointer; padding: 2px 4px; border-radius: 4px; font-size: 11px; line-height: 1.2; }',
 
