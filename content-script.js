@@ -6,6 +6,7 @@ const categoryTypes = {
     Serie: 'Seri',
     Model: 'Model',
     Title: 'İlan Başlığı',
+    Brand2: 'Uyumlu Marka',
     Other: 'Other',
 };
 const filterTypes = {
@@ -17,6 +18,7 @@ const params = {
 };
 params[categoryTypes.Main] = [];
 params[categoryTypes.Brand] = [];
+params[categoryTypes.Brand2] = [];
 params[categoryTypes.Serie] = [];
 params[categoryTypes.Model] = [];
 params[categoryTypes.Title] = [];
@@ -130,7 +132,7 @@ function setDisabledModels(list) {
     }
 
     var profile = currentProfile();     
-    console.log('[sarisite] setDisabledModels: ', profile, editingProfileId, DEFAULT_PROFILE_ID);
+    //console.log('[sarisite] setDisabledModels: ', profile, editingProfileId, DEFAULT_PROFILE_ID);
     if(!profile && editingProfileId == DEFAULT_PROFILE_ID) {
         profile = {
             id: DEFAULT_PROFILE_ID,
@@ -167,10 +169,11 @@ function getCategoryType() {
     var depth = document.querySelectorAll('#search_cats > ul > li').length;
     
     const theadTr = $('#searchResultsTable thead tr');
-    var markaIndex = theadTr.find("td:contains('Marka')").index();
-    var seriIndex = theadTr.find("td:contains('Seri')").index();
-    var modelIndex = theadTr.find("td:contains('Model')").index();
-    var baslikIndex = theadTr.find("td:contains('İlan Başlığı')").index();
+    var markaIndex = theadTr.find("td:contains('" + categoryTypes.Brand + "')").index();
+    var seriIndex = theadTr.find("td:contains('" + categoryTypes.Serie + "')").index();
+    var modelIndex = theadTr.find("td:contains('" + categoryTypes.Model + "')").index();
+    var baslikIndex = theadTr.find("td:contains('" + categoryTypes.Title + "')").index();
+    //var uyumluMarkaIndex = theadTr.find("td:contains('" + categoryTypes.Brand2 + "')").index();
     
     let type = categoryTypes.Main;
     if(markaIndex > -1) {
@@ -185,6 +188,9 @@ function getCategoryType() {
     else if(baslikIndex > -1 && depth > 1) {
         type = categoryTypes.Title;
     }
+    // else if(uyumluMarkaIndex > -1 && depth > 1) {
+    //     type = categoryTypes.Brand2;
+    // }
 
     //console.log('[sarisite] kategori tipi:', type);
     return type;
@@ -195,7 +201,7 @@ function getPageCategoryContext() {
     const catName = document.querySelector('#categoryName');
     const catType = getCategoryType();
 
-    console.log('[sarisite] getPageCategoryContext: ', cat?.value, catName?.value, catType);
+    //console.log('[sarisite] getPageCategoryContext: ', cat?.value, catName?.value, catType);
 
     return {
         categoryId: cat ? String(cat.value) : '',
@@ -1157,15 +1163,8 @@ function decorateCategoryList(container) {
 function mergeParamsAndFilter(callback) {
     var disabledList = getDisabledModels();
 
-    // console.log('[sarisite] mergeParamsAndFilter '
-    //     , '\r\nhepsi: ', disabledList
-    //     , '\r\nBrand: ', disabledList.filter(x => x.type == categoryTypes.Brand).map(function (x) { return x.title; })
-    //     , '\r\nSerie: ', disabledList.filter(x => x.type == categoryTypes.Serie).map(function (x) { return x.title; })
-    //     , '\r\nModel: ', disabledList.filter(x => x.type == categoryTypes.Model).map(function (x) { return x.title; })
-    //     , '\r\nTitle: ', disabledList.filter(x => x.type == categoryTypes.Title).map(function (x) { return x.title; })
-    // );
-
     params[categoryTypes.Brand] = disabledList.filter(x => x.type == categoryTypes.Brand).map(function (x) { return x.title; });
+    params[categoryTypes.Brand2] = disabledList.filter(x => x.type == categoryTypes.Brand2).map(function (x) { return x.title; });
     params[categoryTypes.Serie] = disabledList.filter(x => x.type == categoryTypes.Serie).map(function (x) { return x.title; });
     params[categoryTypes.Model] = disabledList.filter(x => x.type == categoryTypes.Model).map(function (x) { return x.title; });
     params[categoryTypes.Title] = disabledList.filter(x => x.type == categoryTypes.Title).map(function (x) { return x.title; });
@@ -1177,17 +1176,21 @@ function mergeParamsAndFilter(callback) {
 }
 
 function FilterItems() {
-    var markaIndex = $("#searchResultsTable thead tr td:contains('Marka')").index();
-    var modelIndex = $("#searchResultsTable thead tr td:contains('Model')").index();
-    var baslikIndex = $("#searchResultsTable thead tr td:contains('İlan Başlığı')").index();
-    var seriIndex = $("#searchResultsTable thead tr td:contains('Seri')").index();
+    var markaIndex = $("#searchResultsTable thead tr td:contains('" + categoryTypes.Brand + "')").index();
+    var modelIndex = $("#searchResultsTable thead tr td:contains('" + categoryTypes.Model + "')").index();
+    var baslikIndex = $("#searchResultsTable thead tr td:contains('" + categoryTypes.Title + "')").index();
+    var seriIndex = $("#searchResultsTable thead tr td:contains('" + categoryTypes.Serie + "')").index();
+    var uyumluMarkaIndex = $("#searchResultsTable thead tr td:contains('" + categoryTypes.Brand2 + "')").index();
+
     var marka = null;
+    var uyumluMarka = null;
     var baslik = null;
     var seri = null;
     var model = null;
 
     $('.searchResultsRowClass .searchResultsItem').each(function () {
         var checkMarka = null;
+        var checkUyumluMarka = null;
         var checkSeri = null;
         var checkModel = null;
         var checkBaslik = null;
@@ -1195,6 +1198,7 @@ function FilterItems() {
         var $row = $(this);
 
         var $markaCell = $row.find('td:eq(' + markaIndex + ')');
+        var $uyumluMarkaCell = $row.find('td:eq(' + uyumluMarkaIndex + ')');
         var $seriCell = $row.find('td:eq(' + seriIndex + ')');
         var $modelCell = $row.find('td:eq(' + modelIndex + ')');
         var $baslikCell = $row.find('td:eq(' + baslikIndex + ')');
@@ -1211,9 +1215,15 @@ function FilterItems() {
         if (baslikIndex > -1) {
             baslik = stripHtml($baslikCell.find('.classifiedTitle'));
         }
+        if (uyumluMarkaIndex > -1) {
+            uyumluMarka = stripHtml($uyumluMarkaCell);
+        }
 
         if (marka) {
             checkMarka = params[categoryTypes.Brand]?.find(function (x) { return marka == x; });
+        }
+        if (uyumluMarka) {
+            checkUyumluMarka = params[categoryTypes.Brand2]?.find(function (x) { return uyumluMarka == x; });
         }
         if (seri) {
             checkSeri = params[categoryTypes.Serie]?.find(function (x) { return seri == x; });
@@ -1230,6 +1240,7 @@ function FilterItems() {
 
         var shouldBlur = false;
         if (checkMarka != null 
+            || checkUyumluMarka != null
             || checkSeri != null
             || checkModel != null
             || checkBaslik != null
